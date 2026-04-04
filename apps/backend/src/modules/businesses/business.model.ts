@@ -78,8 +78,8 @@ const businessSchema = new Schema<IBusiness>(
   {
     timestamps: true,
     toJSON: {
-      transform(_doc, ret) {
-        ret.id = ret._id.toString();
+      transform(_doc, ret: Record<string, unknown>) {
+        ret.id = String(ret._id);
         delete ret._id;
         delete ret.__v;
         return ret;

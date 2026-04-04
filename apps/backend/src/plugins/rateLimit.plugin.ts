@@ -22,7 +22,7 @@ async function rateLimitPlugin(fastify: FastifyInstance): Promise<void> {
     timeWindow: '1 minute',
     redis: redis as Redis | undefined,
     keyGenerator: (request) => {
-      return request.user?.id ?? request.ip;
+      return request.authUser?.id ?? request.ip;
     },
     errorResponseBuilder: (_request, context) => ({
       success: false,

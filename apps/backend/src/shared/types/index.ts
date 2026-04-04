@@ -52,6 +52,7 @@ export interface DateRangeQuery {
 
 declare module 'fastify' {
   interface FastifyRequest {
-    user?: AuthUser;
+    // Extends the @fastify/jwt user property — must be object, not string/Buffer
+    authUser?: AuthUser;
   }
 }

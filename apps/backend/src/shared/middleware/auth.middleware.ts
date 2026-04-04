@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { AuthUser, JWTPayload } from '../types';
+import { JWTPayload } from '../types';
 
 export async function authenticate(
   request: FastifyRequest,
@@ -16,15 +16,15 @@ export async function authenticate(
       });
     }
 
-    request.user = {
+    request.authUser = {
       id: payload.sub,
       email: payload.email,
       role: payload.role,
       firstName: '',
       lastName: '',
       isEmailVerified: true,
-    } as AuthUser;
-  } catch (err) {
+    };
+  } catch (_err) {
     return reply.status(401).send({
       success: false,
       message: 'Unauthorized: Invalid or expired token',
@@ -38,7 +38,7 @@ export async function requireAdmin(
   reply: FastifyReply,
 ): Promise<void> {
   await authenticate(request, reply);
-  if (request.user?.role !== 'admin') {
+  if (request.authUser?.role !== 'admin') {
     return reply.status(403).send({
       success: false,
       message: 'Forbidden: Admin access required',
@@ -53,14 +53,14 @@ export async function optionalAuth(
 ): Promise<void> {
   try {
     const payload = await request.jwtVerify<JWTPayload>();
-    request.user = {
+    request.authUser = {
       id: payload.sub,
       email: payload.email,
       role: payload.role,
       firstName: '',
       lastName: '',
       isEmailVerified: true,
-    } as AuthUser;
+    };
   } catch {
     // silently ignore — user is optional
   }

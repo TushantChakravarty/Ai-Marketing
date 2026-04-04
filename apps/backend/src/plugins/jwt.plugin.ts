@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin';
 import { FastifyInstance } from 'fastify';
 import fastifyJwt from '@fastify/jwt';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env.config';
 import { JWTPayload } from '../shared/types';
 
@@ -12,7 +13,7 @@ async function jwtPlugin(fastify: FastifyInstance): Promise<void> {
     },
   });
 
-  // Decorate with helpers
+  // Decorate with helpers for access tokens
   fastify.decorate(
     'signAccessToken',
     function (payload: Omit<JWTPayload, 'type' | 'iat' | 'exp'>): string {
@@ -20,20 +21,19 @@ async function jwtPlugin(fastify: FastifyInstance): Promise<void> {
     },
   );
 
+  // Use jsonwebtoken directly for refresh tokens (different secret)
   fastify.decorate(
     'signRefreshToken',
     function (payload: Omit<JWTPayload, 'type' | 'iat' | 'exp'>): string {
-      return fastify.jwt.sign(
-        { ...payload, type: 'refresh' },
-        { secret: env.JWT_REFRESH_SECRET, expiresIn: env.JWT_REFRESH_EXPIRES_IN },
-      );
+      const options: SignOptions = { expiresIn: env.JWT_REFRESH_EXPIRES_IN as SignOptions['expiresIn'] };
+      return jwt.sign({ ...payload, type: 'refresh' }, env.JWT_REFRESH_SECRET, options);
     },
   );
 
   fastify.decorate(
     'verifyRefreshToken',
     function (token: string): JWTPayload {
-      return fastify.jwt.verify<JWTPayload>(token, { secret: env.JWT_REFRESH_SECRET });
+      return jwt.verify(token, env.JWT_REFRESH_SECRET) as JWTPayload;
     },
   );
 }

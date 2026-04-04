@@ -1,0 +1,14 @@
+{
+  "name": "ai-marketing",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/backend",
+    "apps/mobile"
+  ],
+  "scripts": {
+    "backend": "yarn workspace @ai-marketing/backend dev",
+    "mobile": "yarn workspace @ai-marketing/mobile start",
+    "build:backend": "yarn workspace @ai-marketing/backend build"
+  }
+}

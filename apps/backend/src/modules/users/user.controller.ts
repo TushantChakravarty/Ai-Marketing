@@ -25,7 +25,7 @@ export const userController: FastifyPluginAsync = async (fastify) => {
     '/me',
     { preHandler: [authenticate] },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const user = await userService.findById(request.user!.id);
+      const user = await userService.findById(request.authUser!.id);
       if (!user) {
         return reply.status(404).send({ success: false, message: 'User not found', statusCode: 404 });
       }
@@ -39,7 +39,7 @@ export const userController: FastifyPluginAsync = async (fastify) => {
     { preHandler: [authenticate] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const dto = updateProfileSchema.parse(request.body);
-      const user = await userService.updateProfile(request.user!.id, dto);
+      const user = await userService.updateProfile(request.authUser!.id, dto);
       return reply.send(success(user, 'Profile updated'));
     },
   );
@@ -50,7 +50,7 @@ export const userController: FastifyPluginAsync = async (fastify) => {
     { preHandler: [authenticate] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const dto = changePasswordSchema.parse(request.body);
-      await userService.changePassword(request.user!.id, dto);
+      await userService.changePassword(request.authUser!.id, dto);
       return reply.send(success(null, 'Password changed successfully'));
     },
   );
@@ -60,7 +60,7 @@ export const userController: FastifyPluginAsync = async (fastify) => {
     '/me',
     { preHandler: [authenticate] },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      await userService.deleteAccount(request.user!.id);
+      await userService.deleteAccount(request.authUser!.id);
       return reply.status(200).send(noContent('Account deleted successfully'));
     },
   );
