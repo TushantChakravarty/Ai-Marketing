@@ -4,7 +4,7 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import { Text, Avatar } from 'react-native-paper';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import type { DrawerContentComponentProps } from '@react-navigation/drawer';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { MainDrawerParamList } from './types';
 import TabNavigator from './TabNavigator';
 import BusinessSetupScreen from '../screens/onboarding/BusinessSetupScreen';

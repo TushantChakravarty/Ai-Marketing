@@ -7,7 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import { useAppSelector } from '../../store';
 import {
