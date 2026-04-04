@@ -1,6 +1,6 @@
 const API_CONFIG = {
   BASE_URL: __DEV__
-    ? 'http://localhost:3000/api/v1'
+    ? 'http://YOUR_LOCAL_IP:3001/api/v1'
     : 'https://api.aimarketing.app/api/v1',
   TIMEOUT: 30000, // 30 seconds
   RETRY_ATTEMPTS: 3,
