@@ -9,8 +9,8 @@ const createBusinessSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
   industry: z.enum(INDUSTRY_LIST),
-  website: z.string().url().optional(),
-  logo: z.string().url().optional(),
+  website: z.preprocess(v => (v === '' ? undefined : v), z.string().url().optional()),
+  logo: z.preprocess(v => (v === '' ? undefined : v), z.string().url().optional()),
   socialHandles: z
     .object({
       twitter: z.string().optional(),
