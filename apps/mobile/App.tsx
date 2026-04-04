@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { Provider as ReduxProvider } from 'react-redux';
@@ -23,9 +22,7 @@ const App: React.FC = () => {
         <SafeAreaProvider>
           <PaperProvider theme={lightTheme}>
             <StatusBar style="dark" />
-            <NavigationContainer>
-              <AppNavigator />
-            </NavigationContainer>
+            <AppNavigator />
           </PaperProvider>
         </SafeAreaProvider>
       </ReduxProvider>
