@@ -8,7 +8,7 @@ import {
 import { Text, ProgressBar, Chip, Snackbar } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import {
   businessInfoSchema,
   audienceSchema,

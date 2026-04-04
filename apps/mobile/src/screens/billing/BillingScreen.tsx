@@ -8,7 +8,7 @@ import {
   Linking,
 } from 'react-native';
 import { Text, ActivityIndicator, Divider } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAppSelector } from '../../store';
 import { billingService } from '../../services/billing.service';
 import { PLANS, CREDIT_PACKAGES } from '../../config/constants';

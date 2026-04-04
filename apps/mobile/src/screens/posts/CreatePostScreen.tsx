@@ -11,7 +11,7 @@ import {
 import { Text, ActivityIndicator } from 'react-native-paper';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAppSelector } from '../../store';
 import { useCreatePostMutation, useSchedulePostMutation } from '../../store/api/posts.api';
 import { useGeneratePostMutation, useGenerateHashtagsMutation } from '../../store/api/ai.api';

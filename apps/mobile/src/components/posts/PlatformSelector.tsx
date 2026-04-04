@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { Platform, PlatformConnection } from '../../types';
 import { PLATFORMS } from '../../config/constants';
 import { Colors, Spacing, Radius, Typography } from '../../theme';

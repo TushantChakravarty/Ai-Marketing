@@ -9,7 +9,7 @@ import {
 import { Text, Divider } from 'react-native-paper';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useGetPostQuery, useDeletePostMutation, usePublishPostMutation } from '../../store/api/posts.api';
 import type { PostsStackParamList } from '../../types';
 import StatusBadge from '../../components/posts/StatusBadge';

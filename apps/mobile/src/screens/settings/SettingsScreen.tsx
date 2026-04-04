@@ -8,7 +8,7 @@ import {
   Switch,
 } from 'react-native';
 import { Text, Divider } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
 import { useAppSelector, useAppDispatch } from '../../store';
