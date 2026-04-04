@@ -61,8 +61,10 @@ export const businessController: FastifyPluginAsync = async (fastify) => {
     '/',
     { preHandler: [authenticate] },
     async (request: FastifyRequest, reply: FastifyReply) => {
+      console.log('Received request to create business with body:', request.body);
       const dto = createBusinessSchema.parse(request.body);
       const business = await businessService.create(request.authUser!.id, dto);
+      console.log('Created business:', business);
       return reply.status(201).send(created(business, 'Business created'));
     },
   );

@@ -22,6 +22,7 @@ export const useBusiness = () => {
       dispatch(setBusinessLoading(true));
       try {
         const response = await BusinessService.createBusiness(data);
+        console.log('Created business:', response.data);
         const business = response.data;
         dispatch(addBusiness(business));
         dispatch(setCurrentBusiness(business));
