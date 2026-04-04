@@ -17,6 +17,7 @@ import { aiRoutes } from './modules/ai/ai.routes';
 import { platformRoutes } from './modules/platforms/platform.routes';
 import { billingRoutes } from './modules/billing/billing.routes';
 import { analyticsRoutes } from './modules/analytics/analytics.routes';
+import { adsRoutes } from './modules/ads/ads.routes';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const fastify = Fastify({
@@ -75,6 +76,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(platformRoutes);
       await api.register(billingRoutes);
       await api.register(analyticsRoutes);
+      await api.register(adsRoutes);
     },
     { prefix: '/api/v1' },
   );

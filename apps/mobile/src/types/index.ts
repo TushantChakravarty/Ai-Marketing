@@ -242,6 +242,7 @@ export type MainDrawerParamList = {
 export type TabParamList = {
   Dashboard: undefined;
   Posts: undefined;
+  Ads: undefined;
   Analytics: undefined;
   Settings: undefined;
 };
@@ -252,8 +253,15 @@ export type PostsStackParamList = {
   PostDetail: { postId: string };
 };
 
+export type AdsStackParamList = {
+  CampaignsList: undefined;
+  CreateCampaign: undefined;
+  CampaignDetail: { campaignId: string };
+};
+
 export type RootStackParamList = AuthStackParamList &
   OnboardingStackParamList &
   MainDrawerParamList &
   TabParamList &
-  PostsStackParamList;
+  PostsStackParamList &
+  AdsStackParamList;
