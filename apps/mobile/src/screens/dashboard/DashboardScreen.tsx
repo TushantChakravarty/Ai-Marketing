@@ -290,7 +290,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.base,
   },
   statCard: {
-    width: '47.5%',
+    flex: 0,
+    width: '48%',
   },
   section: {
     marginBottom: Spacing.xl,

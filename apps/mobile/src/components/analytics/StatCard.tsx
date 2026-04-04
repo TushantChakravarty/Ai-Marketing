@@ -10,7 +10,7 @@ interface StatCardProps {
   value: number;
   iconName: string;
   iconColor?: string;
-  trend?: number; // positive = up, negative = down
+  trend?: number;
   isPercentage?: boolean;
   subtitle?: string;
   style?: ViewStyle;
@@ -27,30 +27,30 @@ const StatCard: React.FC<StatCardProps> = ({
   style,
 }) => {
   const trendPositive = trend !== undefined && trend >= 0;
-  const formattedValue = isPercentage
-    ? formatPercentage(value)
-    : formatNumber(value);
+  const formattedValue = isPercentage ? formatPercentage(value) : formatNumber(value);
 
   return (
     <View style={[styles.card, style]}>
-      <View style={styles.iconContainer}>
-        <Icon name={iconName} size={22} color={iconColor} />
+      {/* Icon */}
+      <View style={[styles.iconWrap, { backgroundColor: iconColor + '18' }]}>
+        <Icon name={iconName} size={20} color={iconColor} />
       </View>
-      <Text style={styles.value}>{formattedValue}</Text>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+
+      {/* Value + label */}
+      <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit>
+        {formattedValue}
+      </Text>
+      <Text style={styles.title} numberOfLines={1}>{title}</Text>
+
+      {/* Trend */}
       {trend !== undefined && (
-        <View style={styles.trendRow}>
+        <View style={[styles.trendPill, { backgroundColor: trendPositive ? Colors.successLight : Colors.errorLight }]}>
           <Icon
-            name={trendPositive ? 'trending-up' : 'trending-down'}
-            size={14}
+            name={trendPositive ? 'arrow-up' : 'arrow-down'}
+            size={11}
             color={trendPositive ? Colors.success : Colors.error}
           />
-          <Text
-            style={[
-              styles.trendText,
-              { color: trendPositive ? Colors.success : Colors.error },
-            ]}>
+          <Text style={[styles.trendText, { color: trendPositive ? Colors.success : Colors.error }]}>
             {Math.abs(trend).toFixed(1)}%
           </Text>
         </View>
@@ -62,49 +62,43 @@ const StatCard: React.FC<StatCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     padding: Spacing.base,
-    borderWidth: 1,
-    borderColor: Colors.border,
     ...Shadows.sm,
-    flex: 1,
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.surfaceVariant,
-    justifyContent: 'center',
+  iconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: Radius.lg,
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
   value: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     color: Colors.textPrimary,
+    lineHeight: 30,
     marginBottom: 2,
   },
   title: {
     fontSize: Typography.fontSize.xs,
     color: Colors.textSecondary,
     fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    marginBottom: Spacing.sm,
   },
-  subtitle: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  trendRow: {
+  trendPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    marginTop: Spacing.xs,
+    gap: 2,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
   },
   trendText: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
 
