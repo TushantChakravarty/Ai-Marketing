@@ -5,6 +5,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { TabParamList } from './types';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import PostsNavigator from './PostsNavigator';
+import AdsNavigator from './AdsNavigator';
 import AnalyticsScreen from '../screens/analytics/AnalyticsScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
 import { Colors } from '../theme';
@@ -36,6 +37,7 @@ const TabNavigator: React.FC = () => {
           const icons: Record<string, string> = {
             Dashboard: 'view-dashboard',
             Posts: 'file-document-multiple',
+            Ads: 'bullhorn',
             Analytics: 'chart-line',
             Settings: 'cog',
           };
@@ -57,6 +59,11 @@ const TabNavigator: React.FC = () => {
         name="Posts"
         component={PostsNavigator}
         options={{ title: 'Posts' }}
+      />
+      <Tab.Screen
+        name="Ads"
+        component={AdsNavigator}
+        options={{ title: 'Ads' }}
       />
       <Tab.Screen
         name="Analytics"
