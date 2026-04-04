@@ -258,14 +258,21 @@ const MetricChip: React.FC<{ icon: string; label: string; value: string }> = ({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  filterRow: { paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, gap: Spacing.sm },
-  filterChip: {
+  filterRow: {
     paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
+    alignItems: 'center',
+  },
+  filterChip: {
+    height: 34,
+    paddingHorizontal: Spacing.base,
     borderRadius: Radius.full,
     borderWidth: 1.5,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   filterLabel: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, fontWeight: '600' },
@@ -305,10 +312,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: Colors.gray50,
     borderRadius: Radius.lg,
-    padding: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.base,
     marginBottom: Spacing.sm,
   },
-  metricChip: { alignItems: 'center', gap: 2, flex: 1 },
+  metricChip: { alignItems: 'center', gap: 3, flex: 1 },
   metricValue: { fontSize: Typography.fontSize.sm, fontWeight: '700', color: Colors.textPrimary },
   metricLabel: { fontSize: 10, color: Colors.textSecondary },
   budgetRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.sm },
