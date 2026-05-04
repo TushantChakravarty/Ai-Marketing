@@ -103,17 +103,18 @@ const CreatePostScreen: React.FC = () => {
     try {
       await createPost({
         businessId: business.id,
-        content: finalContent,
+        text: finalContent,
         hashtags: hashtagList,
         platforms: selectedPlatforms,
-        isAiGenerated: activeTab === 'ai',
-        prompt: activeTab === 'ai' ? aiPrompt : undefined,
+        mode: activeTab === 'ai' ? 'ai' : 'manual',
+        aiPrompt: activeTab === 'ai' ? aiPrompt : undefined,
       }).unwrap();
       Alert.alert('Success', 'Post published successfully!', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
-    } catch {
-      Alert.alert('Error', 'Failed to publish post. Please try again.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to publish post.';
+      Alert.alert('Error', message);
     }
   }, [
     business,
@@ -273,17 +274,26 @@ const CreatePostScreen: React.FC = () => {
         <View style={styles.actions}>
           <Button
             label="Save as Draft"
-            onPress={() =>
+            onPress={() => {
+              if (!business) return;
+              const draftHashtags = activeTab === 'ai'
+                ? aiHashtags
+                : hashtags.split(' ').map(h => h.trim()).filter(Boolean);
               createPost({
-                businessId: business?.id ?? '',
-                content: currentContent,
+                businessId: business.id,
+                text: currentContent,
+                hashtags: draftHashtags,
                 platforms: selectedPlatforms,
-                isAiGenerated: activeTab === 'ai',
+                mode: activeTab === 'ai' ? 'ai' : 'manual',
+                aiPrompt: activeTab === 'ai' ? aiPrompt : undefined,
               })
                 .unwrap()
                 .then(() => navigation.goBack())
-                .catch(() => Alert.alert('Error', 'Failed to save draft.'))
-            }
+                .catch((err: unknown) => {
+                  const message = err instanceof Error ? err.message : 'Failed to save draft.';
+                  Alert.alert('Error', message);
+                });
+            }}
             variant="outline"
             style={styles.actionBtn}
             disabled={!currentContent.trim()}

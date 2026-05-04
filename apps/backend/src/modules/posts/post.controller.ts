@@ -10,7 +10,7 @@ const createPostSchema = z.object({
   text: z.string().min(1).max(5000),
   mediaUrls: z.array(z.string().url()).optional(),
   hashtags: z.array(z.string()).optional(),
-  platforms: z.array(z.enum(PLATFORMS)).min(1),
+  platforms: z.array(z.enum(PLATFORMS)).optional().default([]),
   mode: z.enum([POST_MODE.MANUAL, POST_MODE.AI]).optional(),
   aiPrompt: z.string().optional(),
 });

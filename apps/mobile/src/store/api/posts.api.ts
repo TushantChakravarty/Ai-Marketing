@@ -3,14 +3,12 @@ import { ApiResponse, PaginatedResponse, Post, Platform, PostStatus } from '../.
 
 interface CreatePostData {
   businessId: string;
-  content: string;
+  text: string;
   hashtags?: string[];
   mediaUrls?: string[];
-  platforms: Platform[];
-  scheduledAt?: string;
-  isAiGenerated?: boolean;
-  prompt?: string;
-  tone?: string;
+  platforms?: Platform[];
+  mode?: 'manual' | 'ai';
+  aiPrompt?: string;
 }
 
 interface GetPostsParams {
