@@ -67,16 +67,18 @@ const CreatePostScreen: React.FC = () => {
         platform: selectedPlatforms[0] ?? 'instagram',
         tone: selectedTone,
       }).unwrap();
-      setAiGeneratedContent(result.data.text);
+      const generatedText = result.data.text;
+      setAiGeneratedContent(generatedText);
 
       // Also generate hashtags
       const hashtagResult = await generateHashtags({
-        content: result.data.content,
+        content: generatedText,
         industry: business.industry,
       }).unwrap();
       setAiHashtags(hashtagResult.data.hashtags);
-    } catch {
-      Alert.alert('Error', 'Failed to generate post. Please try again.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to generate post. Please try again.';
+      Alert.alert('Generation Failed', message);
     }
   }, [aiPrompt, business, selectedTone, selectedPlatforms, generatePost, generateHashtags]);
 
