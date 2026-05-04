@@ -21,6 +21,7 @@ interface ButtonProps {
   disabled?: boolean;
   iconName?: string;
   iconPosition?: 'left' | 'right';
+  iconColor?: string;
   fullWidth?: boolean;
   size?: 'sm' | 'md' | 'lg';
   style?: ViewStyle;
@@ -35,6 +36,7 @@ const Button: React.FC<ButtonProps> = ({
   disabled = false,
   iconName,
   iconPosition = 'left',
+  iconColor: iconColorProp,
   fullWidth = false,
   size = 'md',
   style,
@@ -59,11 +61,12 @@ const Button: React.FC<ButtonProps> = ({
     labelStyle ?? {},
   ];
 
-  const iconColor = variant === 'outline' || variant === 'ghost'
+  const defaultIconColor = variant === 'outline' || variant === 'ghost'
     ? Colors.primary
     : variant === 'danger'
     ? Colors.white
     : Colors.white;
+  const iconColor = iconColorProp ?? defaultIconColor;
 
   const iconSize = size === 'sm' ? 14 : size === 'lg' ? 22 : 18;
 

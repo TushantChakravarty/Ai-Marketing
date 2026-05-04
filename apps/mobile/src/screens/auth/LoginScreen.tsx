@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Text, Snackbar } from 'react-native-paper';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -123,15 +124,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.socialRow}>
-            {['google', 'apple', 'facebook'].map(provider => (
-              <TouchableOpacity key={provider} style={styles.socialBtn}>
-                <Text style={styles.socialBtnText}>
-                  {provider === 'google'
-                    ? 'G'
-                    : provider === 'apple'
-                    ? ''
-                    : 'f'}
-                </Text>
+            {[
+              { key: 'google', icon: 'google', color: '#EA4335' },
+              { key: 'apple', icon: 'apple', color: '#000000' },
+              { key: 'facebook', icon: 'facebook', color: '#1877F2' },
+            ].map(({ key, icon, color }) => (
+              <TouchableOpacity key={key} style={styles.socialBtn}>
+                <Icon name={icon} size={22} color={color} />
               </TouchableOpacity>
             ))}
           </View>
@@ -224,11 +223,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-  },
-  socialBtnText: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: '700',
-    color: Colors.textPrimary,
   },
   footer: {
     flexDirection: 'row',

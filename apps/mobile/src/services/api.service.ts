@@ -66,8 +66,13 @@ apiClient.interceptors.response.use(
     }
 
     const { status } = error.response;
+    const requestUrl: string = (originalRequest as { url?: string }).url ?? '';
+    const isAuthEndpoint = requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/register') ||
+      requestUrl.includes('/auth/forgot-password') ||
+      requestUrl.includes('/auth/reset-password');
 
-    if (status === 401 && !originalRequest._retry) {
+    if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -124,6 +129,12 @@ apiClient.interceptors.response.use(
 
     if (status === 500) {
       return Promise.reject(new Error('Server error. Please try again later.'));
+    }
+
+    // Extract message from API error response body
+    const apiMessage = error.response?.data?.message;
+    if (apiMessage) {
+      return Promise.reject(new Error(apiMessage));
     }
 
     return Promise.reject(error);

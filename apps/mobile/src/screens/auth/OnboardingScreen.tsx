@@ -118,6 +118,8 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
             iconName={currentIndex === SLIDES.length - 1 ? 'arrow-right' : 'chevron-right'}
             iconPosition="right"
             style={styles.nextBtn}
+            labelStyle={{ color: Colors.primary }}
+            iconColor={Colors.primary}
           />
         </View>
       </View>
