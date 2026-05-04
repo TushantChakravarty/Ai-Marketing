@@ -215,7 +215,7 @@ const CreatePostScreen: React.FC = () => {
               label={isGenerating ? 'Generating...' : 'Generate Post'}
               onPress={handleGeneratePost}
               variant="primary"
-              icon="robot"
+              iconName="robot"
               disabled={!aiPrompt.trim() || isGenerating}
               isLoading={isGenerating}
               style={styles.generateBtn}
@@ -250,9 +250,14 @@ const CreatePostScreen: React.FC = () => {
         {/* Platform Selector */}
         <Text style={[styles.sectionLabel, { marginTop: Spacing.xl }]}>Publish To</Text>
         <PlatformSelector
-          selected={selectedPlatforms}
-          onSelectionChange={setSelectedPlatforms}
-          businessId={business?.id}
+          selectedPlatforms={selectedPlatforms}
+          onToggle={platform =>
+            setSelectedPlatforms(prev =>
+              prev.includes(platform)
+                ? prev.filter(p => p !== platform)
+                : [...prev, platform],
+            )
+          }
         />
 
         {/* Actions */}
