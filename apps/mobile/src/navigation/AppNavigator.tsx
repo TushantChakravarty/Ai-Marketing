@@ -2,7 +2,9 @@ import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { useAppSelector, useAppDispatch } from '../store';
 import { setUser, setTokens, setLoading, setHasCompletedOnboarding } from '../store/slices/auth.slice';
+import { setCurrentBusiness } from '../store/slices/business.slice';
 import { StorageUtil } from '../utils/storage.util';
+import { useGetMyBusinessesQuery } from '../store/api/business.api';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 import OnboardingSetupNavigator from './OnboardingSetupNavigator';
@@ -13,6 +15,16 @@ const AppNavigator: React.FC = () => {
   const { isAuthenticated, isLoading, hasCompletedOnboarding } =
     useAppSelector(s => s.auth);
   const currentBusiness = useAppSelector(s => s.business.currentBusiness);
+
+  const { data: businessData } = useGetMyBusinessesQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
+  useEffect(() => {
+    if (businessData?.data?.length && !currentBusiness) {
+      dispatch(setCurrentBusiness(businessData.data[0]));
+    }
+  }, [businessData, currentBusiness, dispatch]);
 
   useEffect(() => {
     const bootstrapAuth = async () => {

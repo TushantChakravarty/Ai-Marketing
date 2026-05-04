@@ -52,15 +52,22 @@ const CreatePostScreen: React.FC = () => {
   const [generateHashtags, { isLoading: isGeneratingHashtags }] = useGenerateHashtagsMutation();
 
   const handleGeneratePost = useCallback(async () => {
-    if (!aiPrompt.trim() || !business) return;
+    if (!aiPrompt.trim()) {
+      Alert.alert('Missing Info', 'Please describe your post first.');
+      return;
+    }
+    if (!business) {
+      Alert.alert('No Business', 'Please complete business setup first.');
+      return;
+    }
     try {
       const result = await generatePost({
         businessId: business.id,
         prompt: aiPrompt,
+        platform: selectedPlatforms[0] ?? 'instagram',
         tone: selectedTone,
-        platforms: selectedPlatforms,
       }).unwrap();
-      setAiGeneratedContent(result.data.content);
+      setAiGeneratedContent(result.data.text);
 
       // Also generate hashtags
       const hashtagResult = await generateHashtags({

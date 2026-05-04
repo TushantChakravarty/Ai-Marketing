@@ -1,11 +1,11 @@
 import { baseApi } from './base.api';
-import { ApiResponse, Platform, Tone } from '../../types';
+import { ApiResponse, Platform } from '../../types';
 
 interface GeneratePostParams {
   businessId: string;
   prompt: string;
+  platform: Platform;
   tone?: string;
-  platforms?: Platform[];
 }
 
 interface GenerateHashtagsParams {
@@ -20,7 +20,7 @@ interface ContentCalendarParams {
 }
 
 interface GeneratedPost {
-  content: string;
+  text: string;
   hashtags: string[];
   imagePrompt?: string;
 }
