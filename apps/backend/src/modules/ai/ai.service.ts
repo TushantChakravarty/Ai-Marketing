@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import Groq from 'groq-sdk';
 import { env } from '../../config/env.config';
 import { Platform, Tone } from '../../config/constants';
 import {
@@ -6,6 +6,8 @@ import {
   ContentCalendarEntry,
   SentimentResult,
 } from './ai.types';
+
+const MODEL = 'llama-3.3-70b-versatile';
 
 const PLATFORM_LIMITS: Record<Platform, number> = {
   twitter: 280,
@@ -22,10 +24,22 @@ const PLATFORM_GUIDELINES: Record<Platform, string> = {
 };
 
 export class AIService {
-  private client: Anthropic;
+  private client: Groq;
 
   constructor() {
-    this.client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+    this.client = new Groq({ apiKey: env.GROQ_API_KEY });
+  }
+
+  private async chat(systemPrompt: string, userMessage: string, maxTokens = 1024): Promise<string> {
+    const response = await this.client.chat.completions.create({
+      model: MODEL,
+      max_tokens: maxTokens,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+    });
+    return response.choices[0]?.message?.content ?? '';
   }
 
   async generatePost(
@@ -46,24 +60,10 @@ Tone: ${tone}
 Platform Guidelines for ${platform}: ${guidelines}
 Character limit: ${limit}
 
-Respond with a JSON object: { "text": "...", "hashtags": ["..."], "imagePrompt": "..." }
-- text: the post content (within character limit)
-- hashtags: array of relevant hashtags without the # symbol
-- imagePrompt: a DALL-E/image generation prompt for a matching visual`;
+Respond ONLY with a valid JSON object, no markdown, no explanation:
+{ "text": "post content here", "hashtags": ["tag1", "tag2"], "imagePrompt": "image prompt here" }`;
 
-    const response = await this.client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: `Create a ${platform} post about: ${prompt}`,
-        },
-      ],
-      system: systemPrompt,
-    });
-
-    const raw = response.content[0].type === 'text' ? response.content[0].text : '{}';
+    const raw = await this.chat(systemPrompt, `Create a ${platform} post about: ${prompt}`);
 
     try {
       const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] ?? '{}');
@@ -80,20 +80,11 @@ Respond with a JSON object: { "text": "...", "hashtags": ["..."], "imagePrompt":
   }
 
   async generateHashtags(content: string, industry: string, count = 10): Promise<string[]> {
-    const response = await this.client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 256,
-      messages: [
-        {
-          role: 'user',
-          content: `Generate ${count} relevant, trending hashtags for this ${industry} industry post. Return only a JSON array of strings without the # symbol.
-
-Post content: "${content}"`,
-        },
-      ],
-    });
-
-    const raw = response.content[0].type === 'text' ? response.content[0].text : '[]';
+    const raw = await this.chat(
+      'You are a social media hashtag expert. Respond ONLY with a valid JSON array of strings, no markdown.',
+      `Generate ${count} relevant hashtags for this ${industry} industry post. No # symbol. Post: "${content}"`,
+      256,
+    );
     try {
       const match = raw.match(/\[[\s\S]*\]/);
       return match ? JSON.parse(match[0]) : [];
@@ -103,22 +94,12 @@ Post content: "${content}"`,
   }
 
   async generateImagePrompt(content: string, style = 'modern, professional'): Promise<string> {
-    const response = await this.client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 256,
-      messages: [
-        {
-          role: 'user',
-          content: `Create a concise, vivid image generation prompt for this social media post. Style: ${style}.
-
-Post: "${content}"
-
-Respond with just the image prompt, no explanation.`,
-        },
-      ],
-    });
-
-    return response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+    const raw = await this.chat(
+      'You are a visual art director. Respond with just the image prompt, no explanation.',
+      `Create a concise image generation prompt for this social media post. Style: ${style}. Post: "${content}"`,
+      256,
+    );
+    return raw.trim();
   }
 
   async generateContentCalendar(
@@ -126,36 +107,17 @@ Respond with just the image prompt, no explanation.`,
     days: number,
     platforms: Platform[],
   ): Promise<ContentCalendarEntry[]> {
-    const response = await this.client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: `Create a ${days}-day social media content calendar for:
+    const raw = await this.chat(
+      'You are a social media content strategist. Respond ONLY with a valid JSON array, no markdown.',
+      `Create a ${days}-day social media content calendar for:
 Business: ${businessContext.name} (${businessContext.industry})
 Target Audience: ${businessContext.targetAudience ?? 'General audience'}
 Tone: ${businessContext.tone ?? 'professional'}
 Platforms: ${platforms.join(', ')}
 
-Return a JSON array where each item has:
-{
-  "date": "YYYY-MM-DD",
-  "platform": "platform_name",
-  "content": {
-    "text": "post content",
-    "hashtags": ["tag1", "tag2"],
-    "imagePrompt": "image generation prompt"
-  },
-  "suggestedTime": "HH:MM"
-}
-
-Generate varied, engaging content types (tips, questions, stories, promos).`,
-        },
-      ],
-    });
-
-    const raw = response.content[0].type === 'text' ? response.content[0].text : '[]';
+Each item: { "date": "YYYY-MM-DD", "platform": "platform_name", "content": { "text": "post content", "hashtags": ["tag1"], "imagePrompt": "prompt" }, "suggestedTime": "HH:MM" }`,
+      4096,
+    );
     try {
       const match = raw.match(/\[[\s\S]*\]/);
       return match ? JSON.parse(match[0]) : [];
@@ -165,21 +127,11 @@ Generate varied, engaging content types (tips, questions, stories, promos).`,
   }
 
   async analyzeSentiment(content: string): Promise<SentimentResult> {
-    const response = await this.client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 256,
-      messages: [
-        {
-          role: 'user',
-          content: `Analyze the sentiment of this social media post. Respond with JSON:
-{ "sentiment": "positive|neutral|negative", "score": 0.0-1.0, "explanation": "brief explanation" }
-
-Post: "${content}"`,
-        },
-      ],
-    });
-
-    const raw = response.content[0].type === 'text' ? response.content[0].text : '{}';
+    const raw = await this.chat(
+      'You are a sentiment analysis expert. Respond ONLY with valid JSON, no markdown.',
+      `Analyze the sentiment of this post. Respond: { "sentiment": "positive|neutral|negative", "score": 0.0-1.0, "explanation": "brief" }. Post: "${content}"`,
+      256,
+    );
     try {
       const match = raw.match(/\{[\s\S]*\}/);
       return match ? JSON.parse(match[0]) : { sentiment: 'neutral', score: 0.5, explanation: '' };
@@ -193,24 +145,14 @@ Post: "${content}"`,
       ? `Platform: ${platform}. ${PLATFORM_GUIDELINES[platform]}`
       : '';
 
-    const response = await this.client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: `Improve this social media post based on the feedback provided.
-${platformContext}
-
-Original post: "${content}"
+    const raw = await this.chat(
+      `You are a social media copywriter. ${platformContext} Respond ONLY with valid JSON, no markdown.`,
+      `Improve this post based on feedback.
+Original: "${content}"
 Feedback: "${feedback}"
+Respond: { "text": "improved post", "hashtags": ["tag1"], "changes": "what changed" }`,
+    );
 
-Respond with JSON: { "text": "improved post", "hashtags": ["..."], "changes": "brief description of changes made" }`,
-        },
-      ],
-    });
-
-    const raw = response.content[0].type === 'text' ? response.content[0].text : '{}';
     try {
       const match = raw.match(/\{[\s\S]*\}/);
       const parsed = match ? JSON.parse(match[0]) : {};
