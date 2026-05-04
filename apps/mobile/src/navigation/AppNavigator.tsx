@@ -45,10 +45,6 @@ const AppNavigator: React.FC = () => {
     bootstrapAuth();
   }, [dispatch]);
 
-  if (isLoading) {
-    return <LoadingOverlay visible />;
-  }
-
   const showOnboarding =
     isAuthenticated && !currentBusiness && !hasCompletedOnboarding;
 
@@ -61,6 +57,7 @@ const AppNavigator: React.FC = () => {
       ) : (
         <MainNavigator />
       )}
+      <LoadingOverlay visible={isLoading} transparent />
     </NavigationContainer>
   );
 };
