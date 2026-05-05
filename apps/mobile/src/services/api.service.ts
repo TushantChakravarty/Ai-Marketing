@@ -6,18 +6,14 @@ import axios, {
 } from 'axios';
 import API_CONFIG from '../config/api.config';
 import { StorageUtil } from '../utils/storage.util';
+import { store } from '../store';
+import { logout } from '../store/slices/auth.slice';
 
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value: string | null) => void;
   reject: (reason?: unknown) => void;
 }> = [];
-
-// Registered by useAuth — called when refresh fails so Redux state is cleared
-let onForceLogout: (() => void) | null = null;
-export const registerLogoutHandler = (handler: () => void) => {
-  onForceLogout = handler;
-};
 
 const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(prom => {
@@ -123,7 +119,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         await StorageUtil.clearAll();
-        onForceLogout?.();
+        store.dispatch(logout());
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

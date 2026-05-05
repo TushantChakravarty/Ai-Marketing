@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store';
 import {
   setUser,
@@ -8,7 +8,6 @@ import {
   setHasCompletedOnboarding,
 } from '../store/slices/auth.slice';
 import { AuthService } from '../services/auth.service';
-import { registerLogoutHandler } from '../services/api.service';
 import { StorageUtil } from '../utils/storage.util';
 import type { LoginCredentials, RegisterData, User, AuthTokens } from '../types';
 
@@ -16,12 +15,6 @@ export const useAuth = () => {
   const dispatch = useAppDispatch();
   const { user, tokens, isAuthenticated, isLoading, hasCompletedOnboarding } =
     useAppSelector(s => s.auth);
-
-  useEffect(() => {
-    registerLogoutHandler(() => {
-      dispatch(logoutAction());
-    });
-  }, [dispatch]);
 
   const login = useCallback(
     async (credentials: LoginCredentials) => {
