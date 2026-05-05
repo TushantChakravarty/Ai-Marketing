@@ -29,11 +29,12 @@ const AppNavigator: React.FC = () => {
   useEffect(() => {
     const bootstrapAuth = async () => {
       try {
-        const [user, token, refreshToken, onboardingDone] = await Promise.all([
+        const [user, token, refreshToken, onboardingDone, savedBusiness] = await Promise.all([
           StorageUtil.getUser(),
           StorageUtil.getToken(),
           StorageUtil.getRefreshToken(),
           StorageUtil.getOnboardingCompleted(),
+          StorageUtil.getCurrentBusiness(),
         ]);
 
         if (user && token && refreshToken) {
@@ -46,6 +47,9 @@ const AppNavigator: React.FC = () => {
             }),
           );
           dispatch(setHasCompletedOnboarding(onboardingDone));
+          if (savedBusiness) {
+            dispatch(setCurrentBusiness(savedBusiness));
+          }
         }
       } catch {
         // If token loading fails, user stays unauthenticated

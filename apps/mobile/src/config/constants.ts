@@ -204,6 +204,7 @@ export const STORAGE_KEYS = {
   ACCESS_TOKEN: '@aimarketing/access_token',
   REFRESH_TOKEN: '@aimarketing/refresh_token',
   USER: '@aimarketing/user',
+  CURRENT_BUSINESS: '@aimarketing/current_business',
   ONBOARDING_COMPLETED: '@aimarketing/onboarding_completed',
   THEME: '@aimarketing/theme',
 } as const;

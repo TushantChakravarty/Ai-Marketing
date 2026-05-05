@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../config/constants';
-import { User, AuthTokens } from '../types';
+import { User, AuthTokens, Business } from '../types';
 
 export const StorageUtil = {
   // ─── Token ────────────────────────────────────────────────────────────────
@@ -67,6 +67,26 @@ export const StorageUtil = {
     await AsyncStorage.removeItem(STORAGE_KEYS.USER);
   },
 
+  // ─── Current Business ─────────────────────────────────────────────────────
+
+  async getCurrentBusiness(): Promise<Business | null> {
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.CURRENT_BUSINESS);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as Business;
+    } catch {
+      return null;
+    }
+  },
+
+  async setCurrentBusiness(business: Business): Promise<void> {
+    await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_BUSINESS, JSON.stringify(business));
+  },
+
+  async removeCurrentBusiness(): Promise<void> {
+    await AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_BUSINESS);
+  },
+
   // ─── Onboarding ───────────────────────────────────────────────────────────
 
   async getOnboardingCompleted(): Promise<boolean> {
@@ -97,6 +117,8 @@ export const StorageUtil = {
       STORAGE_KEYS.ACCESS_TOKEN,
       STORAGE_KEYS.REFRESH_TOKEN,
       STORAGE_KEYS.USER,
+      STORAGE_KEYS.CURRENT_BUSINESS,
+      STORAGE_KEYS.ONBOARDING_COMPLETED,
     ]);
   },
 };

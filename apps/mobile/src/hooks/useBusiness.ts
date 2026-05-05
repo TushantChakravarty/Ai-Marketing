@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store';
+import { StorageUtil } from '../utils/storage.util';
 import {
   setCurrentBusiness,
   addBusiness,
@@ -22,10 +23,10 @@ export const useBusiness = () => {
       dispatch(setBusinessLoading(true));
       try {
         const response = await BusinessService.createBusiness(data);
-        console.log('Created business:', response.data);
         const business = response.data;
         dispatch(addBusiness(business));
         dispatch(setCurrentBusiness(business));
+        await StorageUtil.setCurrentBusiness(business);
         return business;
       } finally {
         dispatch(setBusinessLoading(false));
@@ -55,6 +56,7 @@ export const useBusiness = () => {
         const response = await BusinessService.updateBusiness(businessId, data);
         const updated = response.data;
         dispatch(updateBusinessAction(updated));
+        await StorageUtil.setCurrentBusiness(updated);
         return updated;
       } finally {
         dispatch(setBusinessLoading(false));
