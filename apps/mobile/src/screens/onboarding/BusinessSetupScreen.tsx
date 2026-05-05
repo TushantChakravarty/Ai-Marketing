@@ -28,22 +28,32 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme';
 const TOTAL_STEPS = 4;
 
 const BusinessSetupScreen: React.FC = () => {
+  const { createBusiness, updateBusiness, currentBusiness, isLoading } = useBusiness();
+  const { markOnboardingComplete } = useAuth();
+  const isEditing = !!currentBusiness;
+
   const [step, setStep] = useState(1);
   const [selectedMarketingMode, setSelectedMarketingMode] =
-    useState<MarketingMode>('hybrid');
+    useState<MarketingMode>(currentBusiness?.marketingMode ?? 'hybrid');
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>([]);
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
-  const { createBusiness, isLoading } = useBusiness();
-  const { markOnboardingComplete } = useAuth();
 
   const step1Form = useForm<BusinessInfoFormData>({
     resolver: zodResolver(businessInfoSchema),
-    defaultValues: { name: '', description: '', industry: '', website: '' },
+    defaultValues: {
+      name: currentBusiness?.name ?? '',
+      description: currentBusiness?.description ?? '',
+      industry: currentBusiness?.industry ?? '',
+      website: currentBusiness?.website ?? '',
+    },
   });
 
   const step2Form = useForm<AudienceFormData>({
     resolver: zodResolver(audienceSchema),
-    defaultValues: { targetAudience: '', tone: '' },
+    defaultValues: {
+      targetAudience: currentBusiness?.targetAudience ?? '',
+      tone: currentBusiness?.tone ?? '',
+    },
   });
 
   const [businessInfo, setBusinessInfo] =
@@ -65,12 +75,12 @@ const BusinessSetupScreen: React.FC = () => {
 
   const handleFinish = async () => {
     if (!businessInfo || !audienceInfo) return;
-    if (selectedPlatforms.length === 0) {
+    if (!isEditing && selectedPlatforms.length === 0) {
       setSnackbar({ visible: true, message: 'Please select at least one platform.' });
       return;
     }
     try {
-      await createBusiness({
+      const payload = {
         name: businessInfo.name,
         description: businessInfo.description,
         industry: businessInfo.industry,
@@ -78,16 +88,24 @@ const BusinessSetupScreen: React.FC = () => {
         targetAudience: audienceInfo.targetAudience,
         marketingMode: selectedMarketingMode,
         website: businessInfo.website,
-      });
-      await markOnboardingComplete();
-      Alert.alert(
-        'Business Created!',
-        'Your business has been set up successfully. Head to Settings to connect your social platforms.',
-        [{
-          text: 'Go to Settings',
-          onPress: () => navigate('Settings'),
-        }],
-      );
+      };
+
+      if (isEditing) {
+        await updateBusiness(currentBusiness.id, payload);
+        Alert.alert(
+          'Business Updated!',
+          'Your business details have been saved.',
+          [{ text: 'Go to Settings', onPress: () => navigate('Settings') }],
+        );
+      } else {
+        await createBusiness(payload);
+        await markOnboardingComplete();
+        Alert.alert(
+          'Business Created!',
+          'Your business has been set up successfully. Head to Settings to connect your social platforms.',
+          [{ text: 'Go to Settings', onPress: () => navigate('Settings') }],
+        );
+      }
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'Failed to save business.';
@@ -103,7 +121,7 @@ const BusinessSetupScreen: React.FC = () => {
     );
   };
 
-  const stepLabels = ['Business Info', 'Audience', 'Mode', 'Platforms'];
+  const stepLabels = ['Business Info', 'Audience', 'Mode', isEditing ? 'Review' : 'Platforms'];
 
   return (
     <View style={styles.flex}>
@@ -368,10 +386,13 @@ const BusinessSetupScreen: React.FC = () => {
         {/* Step 4: Platform Selection */}
         {step === 4 && (
           <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Connect your platforms</Text>
+            <Text style={styles.stepTitle}>
+              {isEditing ? 'Review your platforms' : 'Connect your platforms'}
+            </Text>
             <Text style={styles.stepSubtitle}>
-              Select the social media platforms for your business. You can
-              connect them after setup.
+              {isEditing
+                ? 'Your platform connections are managed in Settings.'
+                : 'Select the social media platforms for your business. You can connect them after setup.'}
             </Text>
 
             {PLATFORMS.map(platform => {
@@ -416,7 +437,7 @@ const BusinessSetupScreen: React.FC = () => {
             })}
 
             <Button
-              label="Finish Setup"
+              label={isEditing ? 'Save Changes' : 'Finish Setup'}
               onPress={handleFinish}
               isLoading={isLoading}
               fullWidth
