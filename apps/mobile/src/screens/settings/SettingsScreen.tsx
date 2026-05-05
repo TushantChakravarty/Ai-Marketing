@@ -18,7 +18,7 @@ import Avatar from '../../components/common/Avatar';
 import { Colors, Spacing, Radius, Shadows, Typography } from '../../theme';
 import { PLATFORMS } from '../../config/constants';
 import type { MainDrawerParamList, Platform as PlatformType } from '../../types';
-import { storageUtil } from '../../utils/storage.util';
+import { StorageUtil } from '../../utils/storage.util';
 
 type NavProps = DrawerNavigationProp<MainDrawerParamList>;
 
@@ -43,7 +43,7 @@ const SettingsScreen: React.FC = () => {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
-          await storageUtil.clearAll();
+          await StorageUtil.clearAll();
           dispatch(logout());
         },
       },
