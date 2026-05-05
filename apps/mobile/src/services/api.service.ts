@@ -13,6 +13,12 @@ let failedQueue: Array<{
   reject: (reason?: unknown) => void;
 }> = [];
 
+// Registered by useAuth — called when refresh fails so Redux state is cleared
+let onForceLogout: (() => void) | null = null;
+export const registerLogoutHandler = (handler: () => void) => {
+  onForceLogout = handler;
+};
+
 const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(prom => {
     if (error) {
@@ -117,6 +123,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         await StorageUtil.clearAll();
+        onForceLogout?.();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
