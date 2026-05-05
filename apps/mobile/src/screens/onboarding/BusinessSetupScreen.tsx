@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { Text, ProgressBar, Chip, Snackbar } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
@@ -17,6 +18,7 @@ import {
 } from '../../utils/validation.util';
 import { useBusiness } from '../../hooks/useBusiness';
 import { useAuth } from '../../hooks/useAuth';
+import { navigate } from '../../navigation/RootNavigation';
 import { INDUSTRIES, TONES, MARKETING_MODES, PLATFORMS } from '../../config/constants';
 import type { MarketingMode, Platform } from '../../types';
 import Input from '../../components/common/Input';
@@ -78,6 +80,14 @@ const BusinessSetupScreen: React.FC = () => {
         website: businessInfo.website,
       });
       await markOnboardingComplete();
+      Alert.alert(
+        'Business Created!',
+        'Your business has been set up successfully. Head to Settings to connect your social platforms.',
+        [{
+          text: 'Go to Settings',
+          onPress: () => navigate('Settings'),
+        }],
+      );
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'Failed to save business.';

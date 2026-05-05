@@ -5,6 +5,7 @@ import { setUser, setTokens, setLoading, setHasCompletedOnboarding } from '../st
 import { setCurrentBusiness } from '../store/slices/business.slice';
 import { StorageUtil } from '../utils/storage.util';
 import { useGetMyBusinessesQuery } from '../store/api/business.api';
+import { navigationRef } from './RootNavigation';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 import OnboardingSetupNavigator from './OnboardingSetupNavigator';
@@ -65,7 +66,7 @@ const AppNavigator: React.FC = () => {
     isAuthenticated && !currentBusiness && !hasCompletedOnboarding;
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       {!isAuthenticated ? (
         <AuthNavigator />
       ) : showOnboarding ? (

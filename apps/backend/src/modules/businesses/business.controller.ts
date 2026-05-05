@@ -109,6 +109,19 @@ export const businessController: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // GET /businesses/:id/platforms
+  fastify.get<IdParams>(
+    '/:id/platforms',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const business = await businessService.findByIdAndOwner(request.params.id, request.authUser!.id);
+      if (!business) {
+        return reply.status(404).send({ success: false, message: 'Business not found', statusCode: 404 });
+      }
+      return reply.send(success(business.connectedPlatforms ?? [], 'Platforms retrieved'));
+    },
+  );
+
   // POST /businesses/:id/platforms/connect
   fastify.post<IdParams>(
     '/:id/platforms/connect',
