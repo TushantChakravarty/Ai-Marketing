@@ -12,39 +12,78 @@ interface PlatformParams extends RouteGenericInterface {
 
 interface OAuthCallbackParams extends RouteGenericInterface {
   Params: { platform: string };
-  Querystring: { code?: string; state?: string };
+  Querystring: { code?: string; state?: string; error?: string; error_description?: string };
+}
+
+interface ConnectUrlQuery extends RouteGenericInterface {
+  Querystring: { platform: string; businessId: string; returnUrl: string };
 }
 
 export const platformController: FastifyPluginAsync = async (fastify) => {
-  // GET /platforms/oauth/:platform - Initiate OAuth
-  fastify.get<PlatformParams>(
-    '/oauth/:platform',
+  // GET /platforms/connect-url?platform=X&businessId=Y&returnUrl=Z
+  // Authenticated — returns the OAuth URL the mobile app should open in a browser
+  fastify.get<ConnectUrlQuery>(
+    '/connect-url',
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const platform = z.enum(PLATFORMS).parse(request.params.platform);
-      const { businessId } = z.object({ businessId: z.string().min(1) }).parse(request.query);
-      const oauthUrl = platformService.getOAuthUrl(platform, businessId);
-      return reply.redirect(oauthUrl);
+      const { platform, businessId, returnUrl } = z.object({
+        platform: z.enum(PLATFORMS),
+        businessId: z.string().min(1),
+        returnUrl: z.string().min(1),
+      }).parse(request.query);
+
+      const url = platformService.getOAuthUrl(platform, businessId, returnUrl);
+      return reply.send(success({ url }, 'OAuth URL generated'));
     },
   );
 
-  // GET /platforms/oauth/:platform/callback - OAuth callback
+  // GET /platforms/oauth/:platform/callback — Facebook/etc redirect here after user auth
+  // No auth required — browser session, no JWT available
   fastify.get<OAuthCallbackParams>(
     '/oauth/:platform/callback',
     async (request, reply) => {
-      const platform = z.enum(PLATFORMS).parse(request.params.platform);
-      const { code, state } = z
-        .object({ code: z.string(), state: z.string() })
-        .parse(request.query);
+      const { code, state, error } = request.query;
 
-      const connection = await platformService.handleCallback(platform, code, state);
-      return reply.redirect(
-        `${process.env.FRONTEND_URL}/platforms/connected?platform=${platform}&username=${connection.platformUsername}`,
-      );
+      // Decode state to get returnUrl for redirecting back to the app
+      let returnUrl = 'aimarketing://platforms/connected';
+      try {
+        if (state) {
+          const decoded = JSON.parse(Buffer.from(state, 'base64').toString('utf-8')) as {
+            returnUrl?: string;
+          };
+          if (decoded.returnUrl) returnUrl = decoded.returnUrl;
+        }
+      } catch {
+        // keep default returnUrl
+      }
+
+      if (error || !code || !state) {
+        const msg = error ?? 'Authorization cancelled';
+        return reply.redirect(
+          `${returnUrl}?success=false&error=${encodeURIComponent(msg)}`,
+        );
+      }
+
+      try {
+        const platform = z.enum(PLATFORMS).parse(request.params.platform);
+        const { connection } = await platformService.handleCallback(platform, code, state);
+
+        const params = new URLSearchParams({
+          success: 'true',
+          platform,
+          username: connection.platformUsername ?? '',
+        });
+        return reply.redirect(`${returnUrl}?${params.toString()}`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Connection failed';
+        return reply.redirect(
+          `${returnUrl}?success=false&error=${encodeURIComponent(msg)}`,
+        );
+      }
     },
   );
 
-  // GET /platforms - List connected platforms for a business
+  // GET /platforms — list connected platforms for a business
   fastify.get(
     '/',
     { preHandler: [authenticate] },
@@ -55,7 +94,7 @@ export const platformController: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // DELETE /platforms/:platform - Disconnect a platform
+  // DELETE /platforms/:platform — disconnect a platform
   fastify.delete<PlatformParams>(
     '/:platform',
     { preHandler: [authenticate] },

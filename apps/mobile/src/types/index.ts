@@ -58,7 +58,6 @@ export interface Business {
 
 export interface PlatformConnection {
   id: string;
-  businessId: string;
   platform: Platform;
   accountName: string;
   accountId: string;
