@@ -124,7 +124,7 @@ const PostsListScreen: React.FC = () => {
               }
               onDelete={() => handleDelete(post.id)}
               onPublish={
-                post.platformStatuses[0]?.status === 'draft'
+                (post.platforms[0]?.status ?? post.status) === 'draft'
                   ? () => handlePublish(post.id)
                   : undefined
               }

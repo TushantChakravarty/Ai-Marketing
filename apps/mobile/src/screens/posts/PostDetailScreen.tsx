@@ -73,22 +73,10 @@ const PostDetailScreen: React.FC = () => {
       />
     );
 
-  const totalLikes = post.platformStatuses?.reduce(
-    (sum, p) => sum + (p.engagement?.likes ?? 0),
-    0,
-  ) ?? 0;
-  const totalComments = post.platformStatuses?.reduce(
-    (sum, p) => sum + (p.engagement?.comments ?? 0),
-    0,
-  ) ?? 0;
-  const totalShares = post.platformStatuses?.reduce(
-    (sum, p) => sum + (p.engagement?.shares ?? 0),
-    0,
-  ) ?? 0;
-  const totalReach = post.platformStatuses?.reduce(
-    (sum, p) => sum + (p.engagement?.reach ?? 0),
-    0,
-  ) ?? 0;
+  const totalLikes = 0;
+  const totalComments = 0;
+  const totalShares = 0;
+  const totalReach = 0;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -96,7 +84,7 @@ const PostDetailScreen: React.FC = () => {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <StatusBadge status={post.status} />
-          {post.isAiGenerated && (
+          {post.mode === 'ai' && (
             <View style={styles.aiBadge}>
               <Icon name="robot" size={12} color={Colors.primary} />
               <Text style={styles.aiBadgeText}>AI Generated</Text>
@@ -104,11 +92,11 @@ const PostDetailScreen: React.FC = () => {
           )}
         </View>
 
-        <Text style={styles.contentText}>{post.content}</Text>
+        <Text style={styles.contentText}>{post.content.text}</Text>
 
-        {post.hashtags?.length > 0 && (
+        {post.content.hashtags?.length > 0 && (
           <Text style={styles.hashtags}>
-            {post.hashtags.map((h: string) => `#${h}`).join(' ')}
+            {post.content.hashtags.map((h: string) => `#${h}`).join(' ')}
           </Text>
         )}
 
@@ -125,7 +113,7 @@ const PostDetailScreen: React.FC = () => {
 
       {/* Platform Status */}
       <Text style={styles.sectionTitle}>Platforms</Text>
-      {post.platformStatuses?.map((ps: any) => {
+      {post.platforms?.map((ps) => {
         const platformConfig = PLATFORMS.find(p => p.id === ps.platform);
         return (
           <View key={ps.platform} style={styles.platformCard}>
