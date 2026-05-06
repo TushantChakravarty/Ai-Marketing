@@ -143,27 +143,33 @@ Each item: { "date": "YYYY-MM-DD", "platform": "platform_name", "content": { "te
     }
   }
 
-  async generateImage(prompt: string): Promise<Buffer> {
+  async generateImage(prompt: string): Promise<{ kind: 'url'; url: string } | { kind: 'buffer'; buffer: Buffer }> {
     if (env.HF_TOKEN) {
-      return this.generateImageHF(prompt);
+      const buffer = await this.generateImageHF(prompt);
+      return { kind: 'buffer', buffer };
     }
     if (this.openai) {
-      return this.generateImageOpenAI(prompt);
+      const buffer = await this.generateImageOpenAI(prompt);
+      return { kind: 'buffer', buffer };
     }
-    throw new Error(
-      'No image generation API configured. Add HF_TOKEN (free at huggingface.co) or OPENAI_API_KEY to your .env.',
-    );
+    // Zero-config fallback: Pollinations.ai (free, no key, powered by FLUX)
+    return { kind: 'url', url: this.generateImagePollinations(prompt) };
+  }
+
+  private generateImagePollinations(prompt: string): string {
+    const seed = Math.floor(Math.random() * 9_999_999);
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&seed=${seed}`;
   }
 
   private async generateImageHF(prompt: string): Promise<Buffer> {
+    // New HF Inference Providers router URL (updated from legacy api-inference endpoint)
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',
+      'https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell',
       {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${env.HF_TOKEN}`,
           'Content-Type': 'application/json',
-          Accept: 'image/jpeg',
         },
         body: JSON.stringify({ inputs: prompt }),
       },

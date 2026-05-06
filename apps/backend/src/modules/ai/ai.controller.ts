@@ -104,11 +104,18 @@ export const aiController: FastifyPluginAsync = async (fastify) => {
     { preHandler: [authenticate] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const dto = generateImageSchema.parse(request.body);
-      const buffer = await aiService.generateImage(dto.prompt);
+      const result = await aiService.generateImage(dto.prompt);
 
-      const filename = `ai-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
-      fs.writeFileSync(path.join(UPLOADS_DIR, filename), buffer);
-      const imageUrl = `${env.BACKEND_URL}/uploads/${filename}`;
+      let imageUrl: string;
+      if (result.kind === 'url') {
+        // Pollinations or other external URL — use directly
+        imageUrl = result.url;
+      } else {
+        // Buffer from HF or DALL-E — save to disk
+        const filename = `ai-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+        fs.writeFileSync(path.join(UPLOADS_DIR, filename), result.buffer);
+        imageUrl = `${env.BACKEND_URL}/uploads/${filename}`;
+      }
 
       return reply.send(success({ imageUrl }, 'Image generated successfully'));
     },
