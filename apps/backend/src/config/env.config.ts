@@ -46,6 +46,8 @@ const envSchema = z.object({
   META_APP_ID: z.string().default(''),
   META_APP_SECRET: z.string().default(''),
   META_ACCESS_TOKEN: z.string().default(''),
+  META_AD_ACCOUNT_ID: z.string().default(''),  // e.g. 123456789 (without act_ prefix)
+  META_PAGE_ID: z.string().default(''),        // Facebook Page ID linked to the ad account
 
   INSTAGRAM_APP_ID: z.string().default(''),
   INSTAGRAM_APP_SECRET: z.string().default(''),

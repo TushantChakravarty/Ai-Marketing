@@ -29,9 +29,11 @@ const CTA_MAP: Record<string, string> = {
 
 export class MetaAdsProvider extends BaseAdsProvider {
   private client: AxiosInstance;
+  private pageId: string;
 
-  constructor(accessToken: string, adAccountId: string) {
+  constructor(accessToken: string, adAccountId: string, pageId = '') {
     super(accessToken, adAccountId);
+    this.pageId = pageId;
     this.client = axios.create({
       baseURL: META_API_BASE,
       params: { access_token: accessToken },
@@ -270,7 +272,7 @@ export class MetaAdsProvider extends BaseAdsProvider {
     return {
       name: `${campaign.name} — Creative`,
       object_story_spec: {
-        page_id: this.adAccountId, // needs page ID in production
+        page_id: this.pageId || this.adAccountId,
         link_data: linkData,
       },
     };

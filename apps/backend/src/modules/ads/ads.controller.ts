@@ -52,7 +52,7 @@ const createCampaignSchema = z.object({
   ]),
   billingEvent: z.enum(['IMPRESSIONS', 'LINK_CLICKS', 'POST_ENGAGEMENT']),
   creative: creativeSchema,
-  metaAdAccountId: z.string(),
+  metaAdAccountId: z.string().optional().default(''),
 });
 
 const updateCampaignSchema = z.object({
@@ -157,17 +157,17 @@ export const adsController: FastifyPluginAsync = async (fastify) => {
     return reply.send(success(campaign, 'Insights synced'));
   });
 
-  // GET /ads/tools/interests?businessId=&adAccountId=&q=
+  // GET /ads/tools/interests?q=&adAccountId=
   fastify.get('/tools/interests', { preHandler: authenticate }, async (req, reply) => {
-    const { businessId, adAccountId, q } = req.query as any;
-    const interests = await adsService.searchInterests(businessId, adAccountId, q);
+    const { adAccountId, q } = req.query as any;
+    const interests = await adsService.searchInterests(adAccountId, q);
     return reply.send(success(interests));
   });
 
   // POST /ads/tools/estimate-audience
   fastify.post('/tools/estimate-audience', { preHandler: authenticate }, async (req, reply) => {
-    const { businessId, adAccountId, targeting } = req.body as any;
-    const estimate = await adsService.estimateAudience(businessId, adAccountId, targeting);
+    const { adAccountId, targeting } = req.body as any;
+    const estimate = await adsService.estimateAudience(adAccountId, targeting);
     return reply.send(success(estimate));
   });
 };

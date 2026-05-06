@@ -1,23 +1,20 @@
 import { CampaignModel, ICampaign } from './ads.model';
 import { MetaAdsProvider } from './providers/meta.provider';
-import { PlatformConnectionModel } from '../platforms/platform.model';
 import { CreateCampaignDto, UpdateCampaignDto, GetCampaignsQuery } from './ads.types';
+import { env } from '../../config/env.config';
 
 class AdsService {
-  // ── Get provider for a business+platform ─────────────────────────────────
+  // ── Get provider ──────────────────────────────────────────────────────────
 
-  private async getMetaProvider(businessId: string, adAccountId: string): Promise<MetaAdsProvider> {
-    const connection = await PlatformConnectionModel.findOne({
-      business: businessId,
-      platform: { $in: ['facebook', 'instagram'] },
-      isActive: true,
-    });
-
-    if (!connection) {
-      throw new Error('No active Meta (Facebook/Instagram) connection found. Connect your account first.');
+  private getMetaProvider(adAccountId?: string): MetaAdsProvider {
+    if (!env.META_ACCESS_TOKEN) {
+      throw new Error('META_ACCESS_TOKEN is not configured. Add it to your backend .env file.');
     }
-
-    return new MetaAdsProvider(connection.accessToken, adAccountId);
+    const accountId = adAccountId || env.META_AD_ACCOUNT_ID;
+    if (!accountId) {
+      throw new Error('No Meta Ad Account ID. Set META_AD_ACCOUNT_ID in .env or provide it when creating the campaign.');
+    }
+    return new MetaAdsProvider(env.META_ACCESS_TOKEN, accountId, env.META_PAGE_ID);
   }
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
@@ -35,7 +32,7 @@ class AdsService {
       optimizationGoal: dto.optimizationGoal,
       billingEvent: dto.billingEvent,
       creative: dto.creative,
-      metaAdAccountId: dto.metaAdAccountId,
+      metaAdAccountId: dto.metaAdAccountId || env.META_AD_ACCOUNT_ID,
       status: 'draft',
     });
 
@@ -47,10 +44,7 @@ class AdsService {
     if (!campaign) throw new Error('Campaign not found');
     if (campaign.status === 'active') throw new Error('Campaign is already active');
 
-    const provider = await this.getMetaProvider(
-      campaign.business.toString(),
-      campaign.metaAdAccountId,
-    );
+    const provider = this.getMetaProvider(campaign.metaAdAccountId);
 
     try {
       const result = await provider.createCampaign(campaign);
@@ -62,9 +56,7 @@ class AdsService {
       campaign.status = 'active';
       campaign.errorMessage = undefined;
 
-      // Activate on Meta side
       await provider.resumeCampaign(result.campaignId);
-
       await campaign.save();
     } catch (err: any) {
       campaign.status = 'failed';
@@ -81,11 +73,7 @@ class AdsService {
     if (!campaign) throw new Error('Campaign not found');
     if (!campaign.metaCampaignId) throw new Error('Campaign has not been launched yet');
 
-    const provider = await this.getMetaProvider(
-      campaign.business.toString(),
-      campaign.metaAdAccountId,
-    );
-
+    const provider = this.getMetaProvider(campaign.metaAdAccountId);
     await provider.pauseCampaign(campaign.metaCampaignId);
     campaign.status = 'paused';
     await campaign.save();
@@ -98,11 +86,7 @@ class AdsService {
     if (!campaign) throw new Error('Campaign not found');
     if (!campaign.metaCampaignId) throw new Error('Campaign has not been launched yet');
 
-    const provider = await this.getMetaProvider(
-      campaign.business.toString(),
-      campaign.metaAdAccountId,
-    );
-
+    const provider = this.getMetaProvider(campaign.metaAdAccountId);
     await provider.resumeCampaign(campaign.metaCampaignId);
     campaign.status = 'active';
     await campaign.save();
@@ -115,10 +99,7 @@ class AdsService {
     if (!campaign) throw new Error('Campaign not found');
 
     if (campaign.metaCampaignId) {
-      const provider = await this.getMetaProvider(
-        campaign.business.toString(),
-        campaign.metaAdAccountId,
-      );
+      const provider = this.getMetaProvider(campaign.metaAdAccountId);
       await provider.deleteCampaign(campaign.metaCampaignId);
     }
 
@@ -170,11 +151,7 @@ class AdsService {
     if (!campaign) throw new Error('Campaign not found');
     if (!campaign.metaCampaignId) throw new Error('Campaign has not been launched yet');
 
-    const provider = await this.getMetaProvider(
-      campaign.business.toString(),
-      campaign.metaAdAccountId,
-    );
-
+    const provider = this.getMetaProvider(campaign.metaAdAccountId);
     const metrics = await provider.getInsights(campaign.metaCampaignId);
     campaign.metrics = metrics;
     await campaign.save();
@@ -184,13 +161,13 @@ class AdsService {
 
   // ── Audience Tools ────────────────────────────────────────────────────────
 
-  async searchInterests(businessId: string, adAccountId: string, query: string) {
-    const provider = await this.getMetaProvider(businessId, adAccountId);
+  async searchInterests(adAccountId: string, query: string) {
+    const provider = this.getMetaProvider(adAccountId);
     return provider.searchInterests(query);
   }
 
-  async estimateAudience(businessId: string, adAccountId: string, targeting: ICampaign['targeting']) {
-    const provider = await this.getMetaProvider(businessId, adAccountId);
+  async estimateAudience(adAccountId: string, targeting: ICampaign['targeting']) {
+    const provider = this.getMetaProvider(adAccountId);
     return provider.estimateAudience(targeting);
   }
 }

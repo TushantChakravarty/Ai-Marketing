@@ -42,7 +42,6 @@ const CreateCampaignScreen: React.FC = () => {
   // Step 1 — Objective
   const [name, setName] = useState('');
   const [objective, setObjective] = useState<CampaignObjective>('TRAFFIC');
-  const [adAccountId, setAdAccountId] = useState('');
 
   // Step 2 — Budget
   const [budgetType, setBudgetType] = useState<'daily' | 'lifetime'>('daily');
@@ -65,7 +64,7 @@ const CreateCampaignScreen: React.FC = () => {
   const [launchCampaign, { isLoading: isLaunching }] = useLaunchCampaignMutation();
 
   const canNext = useCallback((): boolean => {
-    if (step === 0) return name.trim().length > 0 && adAccountId.trim().length > 0;
+    if (step === 0) return name.trim().length > 0;
     if (step === 1) return parseFloat(budgetAmount) > 0;
     if (step === 2) return countries.trim().length > 0;
     if (step === 3)
@@ -117,7 +116,7 @@ const CreateCampaignScreen: React.FC = () => {
       optimizationGoal: 'LINK_CLICKS' as const,
       billingEvent: 'IMPRESSIONS' as const,
       creative,
-      metaAdAccountId: adAccountId,
+      metaAdAccountId: '',
     };
   };
 
@@ -192,13 +191,6 @@ const CreateCampaignScreen: React.FC = () => {
         {step === 0 && (
           <View>
             <Input label="Campaign Name" value={name} onChangeText={setName} placeholder="e.g. Summer Sale 2024" />
-            <Input
-              label="Meta Ad Account ID"
-              value={adAccountId}
-              onChangeText={setAdAccountId}
-              placeholder="act_123456789"
-              style={{ marginTop: Spacing.base }}
-            />
             <Text style={styles.sectionLabel}>Objective</Text>
             {OBJECTIVES.map(obj => (
               <TouchableOpacity
@@ -345,7 +337,6 @@ const CreateCampaignScreen: React.FC = () => {
               <ReviewRow label="Name" value={name} />
               <ReviewRow label="Platform" value="Meta (Facebook + Instagram)" />
               <ReviewRow label="Objective" value={OBJECTIVES.find(o => o.value === objective)?.label ?? objective} />
-              <ReviewRow label="Ad Account" value={adAccountId} />
             </ReviewSection>
 
             <ReviewSection title="Budget">

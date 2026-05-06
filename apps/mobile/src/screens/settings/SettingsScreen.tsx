@@ -7,22 +7,15 @@ import {
   Alert,
   Switch,
 } from 'react-native';
-import { Text, Divider } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
-import * as Linking from 'expo-linking';
 import { useAppSelector, useAppDispatch } from '../../store';
 import { logout } from '../../store/slices/auth.slice';
-import {
-  useGetPlatformConnectionsQuery,
-  useDisconnectPlatformMutation,
-  useLazyGetConnectUrlQuery,
-} from '../../store/api/business.api';
 import Avatar from '../../components/common/Avatar';
 import { Colors, Spacing, Radius, Shadows, Typography } from '../../theme';
-import { PLATFORMS } from '../../config/constants';
-import type { MainDrawerParamList, Platform as PlatformType } from '../../types';
+import type { MainDrawerParamList } from '../../types';
 import { StorageUtil } from '../../utils/storage.util';
 
 type NavProps = DrawerNavigationProp<MainDrawerParamList>;
@@ -32,16 +25,6 @@ const SettingsScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const user = useAppSelector(s => s.auth.user);
   const business = useAppSelector(s => s.business.currentBusiness);
-
-  const { data: platformsData, refetch: refetchConnections } = useGetPlatformConnectionsQuery(
-    business?.id ?? '',
-    { skip: !business?.id },
-  );
-  const [disconnectPlatform, { isLoading: isDisconnecting }] = useDisconnectPlatformMutation();
-  const [getConnectUrl] = useLazyGetConnectUrlQuery();
-  const [connectingPlatform, setConnectingPlatform] = React.useState<PlatformType | null>(null);
-
-  const connectedPlatforms = platformsData?.data ?? [];
 
   const handleLogout = useCallback(() => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -56,72 +39,6 @@ const SettingsScreen: React.FC = () => {
       },
     ]);
   }, [dispatch]);
-
-  const handleDisconnectPlatform = useCallback(
-    (platform: PlatformType) => {
-      const platformConfig = PLATFORMS.find(p => p.id === platform);
-      Alert.alert(
-        `Disconnect ${platformConfig?.name}`,
-        'Your posts scheduled for this platform will no longer be published.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Disconnect',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await disconnectPlatform({ businessId: business?.id ?? '', platform }).unwrap();
-              } catch {
-                Alert.alert('Error', 'Failed to disconnect platform.');
-              }
-            },
-          },
-        ],
-      );
-    },
-    [business?.id, disconnectPlatform],
-  );
-
-  const handleConnectPlatform = useCallback(
-    async (platform: PlatformType) => {
-      if (!business?.id) return;
-
-      const platformConfig = PLATFORMS.find(p => p.id === platform);
-      setConnectingPlatform(platform);
-
-      try {
-        const returnUrl = Linking.createURL('platforms/connected');
-
-        const urlResult = await getConnectUrl({
-          platform,
-          businessId: business.id,
-          returnUrl,
-        }).unwrap();
-
-        // Listen for the deep-link redirect before opening the browser
-        const subscription = Linking.addEventListener('url', ({ url }) => {
-          subscription.remove();
-          setConnectingPlatform(null);
-
-          const parsed = Linking.parse(url);
-          if (parsed.queryParams?.success === 'true') {
-            refetchConnections();
-            Alert.alert('Connected!', `${platformConfig?.name ?? platform} connected successfully.`);
-          } else {
-            const errMsg = (parsed.queryParams?.error as string) ?? 'Connection failed.';
-            Alert.alert('Connection Failed', errMsg);
-          }
-        });
-
-        // Open OAuth URL in the device browser
-        await Linking.openURL(urlResult.data.url);
-      } catch {
-        setConnectingPlatform(null);
-        Alert.alert('Error', `Failed to connect ${platformConfig?.name ?? platform}. Please try again.`);
-      }
-    },
-    [business?.id, getConnectUrl, refetchConnections],
-  );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -164,47 +81,6 @@ const SettingsScreen: React.FC = () => {
         onPress={() => navigation.navigate('BusinessSetup')}
       />
 
-      {/* Connected Platforms */}
-      <SectionHeader title="Connected Platforms" />
-      {PLATFORMS.map(platformConfig => {
-        const connection = connectedPlatforms.find(c => c.platform === platformConfig.id);
-        return (
-          <View key={platformConfig.id} style={styles.platformItem}>
-            <View
-              style={[styles.platformIcon, { backgroundColor: platformConfig.color + '20' }]}>
-              <Icon name={platformConfig.icon} size={22} color={platformConfig.color} />
-            </View>
-            <View style={styles.platformInfo}>
-              <Text style={styles.platformName}>{platformConfig.name}</Text>
-              {connection ? (
-                <Text style={styles.platformConnected}>
-                  @{connection.accountName} · Connected
-                </Text>
-              ) : (
-                <Text style={styles.platformDisconnected}>Not connected</Text>
-              )}
-            </View>
-            {connection ? (
-              <TouchableOpacity
-                style={styles.disconnectBtn}
-                onPress={() => handleDisconnectPlatform(platformConfig.id)}
-                disabled={isDisconnecting}>
-                <Text style={styles.disconnectBtnText}>Disconnect</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[styles.connectBtn, connectingPlatform === platformConfig.id && styles.connectBtnDisabled]}
-                onPress={() => handleConnectPlatform(platformConfig.id)}
-                disabled={connectingPlatform !== null}>
-                <Text style={styles.connectBtnText}>
-                  {connectingPlatform === platformConfig.id ? 'Connecting…' : 'Connect'}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        );
-      })}
-
       {/* Subscription */}
       <SectionHeader title="Subscription" />
       <SettingsItem
@@ -218,14 +94,14 @@ const SettingsScreen: React.FC = () => {
       <SectionHeader title="Notifications" />
       <NotificationToggleItem
         icon="bell-outline"
-        label="Post Published"
-        subtitle="When a post is successfully published"
+        label="Campaign Active"
+        subtitle="When a campaign goes live"
         defaultValue
       />
       <NotificationToggleItem
         icon="alert-circle-outline"
-        label="Post Failed"
-        subtitle="When a post fails to publish"
+        label="Campaign Failed"
+        subtitle="When a campaign fails to launch"
         defaultValue
       />
       <NotificationToggleItem
@@ -347,26 +223,6 @@ const styles = StyleSheet.create({
   settingsItemContent: { flex: 1 },
   settingsItemLabel: { fontSize: Typography.fontSize.base, color: Colors.textPrimary, fontWeight: '500' },
   settingsItemSubtitle: { fontSize: Typography.fontSize.xs, color: Colors.textSecondary, marginTop: 1 },
-  platformItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.base,
-    gap: Spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.divider,
-  },
-  platformIcon: { width: 40, height: 40, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
-  platformInfo: { flex: 1 },
-  platformName: { fontSize: Typography.fontSize.base, fontWeight: '600', color: Colors.textPrimary },
-  platformConnected: { fontSize: Typography.fontSize.xs, color: Colors.success, marginTop: 2 },
-  platformDisconnected: { fontSize: Typography.fontSize.xs, color: Colors.textSecondary, marginTop: 2 },
-  connectBtn: { paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, borderRadius: Radius.lg, backgroundColor: Colors.primary },
-  connectBtnDisabled: { opacity: 0.6 },
-  connectBtnText: { fontSize: Typography.fontSize.sm, color: Colors.white, fontWeight: '600' },
-  disconnectBtn: { paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1.5, borderColor: Colors.error },
-  disconnectBtnText: { fontSize: Typography.fontSize.sm, color: Colors.error, fontWeight: '600' },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
