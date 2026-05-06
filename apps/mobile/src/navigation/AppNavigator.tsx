@@ -23,7 +23,9 @@ const AppNavigator: React.FC = () => {
 
   useEffect(() => {
     if (businessData?.data?.length && !currentBusiness) {
-      dispatch(setCurrentBusiness(businessData.data[0]));
+      const business = businessData.data[0];
+      dispatch(setCurrentBusiness(business));
+      StorageUtil.setCurrentBusiness(business);
     }
   }, [businessData, currentBusiness, dispatch]);
 
@@ -38,8 +40,8 @@ const AppNavigator: React.FC = () => {
           StorageUtil.getCurrentBusiness(),
         ]);
 
-        if (user && token && refreshToken) {
-          dispatch(setUser(user));
+        if (token && refreshToken) {
+          if (user) dispatch(setUser(user));
           dispatch(
             setTokens({
               accessToken: token,
