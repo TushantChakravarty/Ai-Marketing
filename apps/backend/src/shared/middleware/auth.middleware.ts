@@ -6,6 +6,7 @@ export async function authenticate(
   reply: FastifyReply,
 ): Promise<void> {
   try {
+    
     const payload = await request.jwtVerify<JWTPayload>();
 
     if (payload.type !== 'access') {
