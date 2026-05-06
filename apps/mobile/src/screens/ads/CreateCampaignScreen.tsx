@@ -16,7 +16,7 @@ import dayjs from 'dayjs';
 import { useAppSelector } from '../../store';
 import { useCreateCampaignMutation, useLaunchCampaignMutation } from '../../store/api/ads.api';
 import { useGetPlatformConfigsQuery } from '../../store/api/business.api';
-import type { AdsStackParamList, Platform } from '../../types';
+import type { AdsStackParamList } from '../../types';
 import {
   CampaignObjective,
   CampaignCTA,
