@@ -25,6 +25,11 @@ const generateImagePromptSchema = z.object({
   style: z.string().optional(),
 });
 
+const generateImageSchema = z.object({
+  prompt: z.string().min(1).max(1000),
+  size: z.enum(['1024x1024', '1792x1024', '1024x1792']).optional(),
+});
+
 const contentCalendarSchema = z.object({
   businessId: z.string().min(1),
   days: z.number().int().min(1).max(30),
@@ -85,6 +90,17 @@ export const aiController: FastifyPluginAsync = async (fastify) => {
       const dto = generateImagePromptSchema.parse(request.body);
       const imagePrompt = await aiService.generateImagePrompt(dto.content, dto.style);
       return reply.send(success({ imagePrompt }, 'Image prompt generated'));
+    },
+  );
+
+  // POST /ai/generate-image
+  fastify.post(
+    '/generate-image',
+    { preHandler: [authenticate] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const dto = generateImageSchema.parse(request.body);
+      const imageUrl = await aiService.generateImage(dto.prompt, dto.size);
+      return reply.send(success({ imageUrl }, 'Image generated successfully'));
     },
   );
 

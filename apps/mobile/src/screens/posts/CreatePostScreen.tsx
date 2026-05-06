@@ -7,14 +7,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
+  Modal,
+  TextInput as RNTextInput,
 } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAppSelector } from '../../store';
 import { useCreatePostMutation, useSchedulePostMutation } from '../../store/api/posts.api';
-import { useGeneratePostMutation, useGenerateHashtagsMutation } from '../../store/api/ai.api';
+import { useGeneratePostMutation, useGenerateHashtagsMutation, useGenerateImageMutation } from '../../store/api/ai.api';
+import { uploadImage } from '../../store/api/upload.api';
 import type { PostsStackParamList, Platform as PlatformType } from '../../types';
 import PlatformSelector from '../../components/posts/PlatformSelector';
 import { Colors, Spacing, Radius, Shadows, Typography } from '../../theme';
@@ -24,7 +29,6 @@ import Input from '../../components/common/Input';
 
 type RouteProps = RouteProp<PostsStackParamList, 'CreatePost'>;
 type NavProps = StackNavigationProp<PostsStackParamList, 'CreatePost'>;
-
 type TabType = 'manual' | 'ai';
 
 const CreatePostScreen: React.FC = () => {
@@ -46,10 +50,61 @@ const CreatePostScreen: React.FC = () => {
   const [aiGeneratedContent, setAiGeneratedContent] = useState('');
   const [aiHashtags, setAiHashtags] = useState<string[]>([]);
 
+  // Media state
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imageGenModalVisible, setImageGenModalVisible] = useState(false);
+  const [imageGenPrompt, setImageGenPrompt] = useState('');
+
   const [createPost, { isLoading: isCreating }] = useCreatePostMutation();
   const [schedulePost] = useSchedulePostMutation();
   const [generatePost, { isLoading: isGenerating }] = useGeneratePostMutation();
-  const [generateHashtags, { isLoading: isGeneratingHashtags }] = useGenerateHashtagsMutation();
+  const [generateHashtags] = useGenerateHashtagsMutation();
+  const [generateImage, { isLoading: isGeneratingImage }] = useGenerateImageMutation();
+
+  const handlePickImage = useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please allow access to your photo library.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: false,
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    const localUri = result.assets[0].uri;
+    setIsUploading(true);
+    try {
+      const uploadedUrl = await uploadImage(localUri);
+      setMediaUrls(prev => [...prev, uploadedUrl]);
+    } catch {
+      // If upload fails, use local URI as fallback (visible on this device only)
+      setMediaUrls(prev => [...prev, localUri]);
+      Alert.alert('Upload Notice', 'Image saved locally. Upload to server failed — it will be visible on this device only.');
+    } finally {
+      setIsUploading(false);
+    }
+  }, []);
+
+  const handleGenerateImage = useCallback(async () => {
+    if (!imageGenPrompt.trim()) return;
+    try {
+      const result = await generateImage({ prompt: imageGenPrompt }).unwrap();
+      setMediaUrls(prev => [...prev, result.data.imageUrl]);
+      setImageGenModalVisible(false);
+      setImageGenPrompt('');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to generate image.';
+      Alert.alert('Generation Failed', msg);
+    }
+  }, [imageGenPrompt, generateImage]);
+
+  const handleRemoveImage = (url: string) => {
+    setMediaUrls(prev => prev.filter(u => u !== url));
+  };
 
   const handleGeneratePost = useCallback(async () => {
     if (!aiPrompt.trim()) {
@@ -70,7 +125,11 @@ const CreatePostScreen: React.FC = () => {
       const generatedText = result.data.text;
       setAiGeneratedContent(generatedText);
 
-      // Also generate hashtags
+      // Pre-fill image gen prompt from AI suggestion
+      if (result.data.imagePrompt) {
+        setImageGenPrompt(result.data.imagePrompt);
+      }
+
       const hashtagResult = await generateHashtags({
         content: generatedText,
         industry: business.industry,
@@ -95,16 +154,14 @@ const CreatePostScreen: React.FC = () => {
     const hashtagList =
       activeTab === 'ai'
         ? aiHashtags
-        : hashtags
-            .split(' ')
-            .map(h => h.trim())
-            .filter(Boolean);
+        : hashtags.split(' ').map(h => h.trim()).filter(Boolean);
 
     try {
       await createPost({
         businessId: business.id,
         text: finalContent,
         hashtags: hashtagList,
+        mediaUrls,
         platforms: selectedPlatforms,
         mode: activeTab === 'ai' ? 'ai' : 'manual',
         aiPrompt: activeTab === 'ai' ? aiPrompt : undefined,
@@ -117,16 +174,8 @@ const CreatePostScreen: React.FC = () => {
       Alert.alert('Error', message);
     }
   }, [
-    business,
-    selectedPlatforms,
-    activeTab,
-    aiGeneratedContent,
-    content,
-    hashtags,
-    aiHashtags,
-    aiPrompt,
-    createPost,
-    navigation,
+    business, selectedPlatforms, activeTab, aiGeneratedContent, content,
+    hashtags, aiHashtags, aiPrompt, mediaUrls, createPost, navigation,
   ]);
 
   const charLimitForPlatforms = selectedPlatforms.includes('twitter') ? 280 : 2200;
@@ -161,7 +210,6 @@ const CreatePostScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
         {activeTab === 'manual' ? (
-          /* ── Manual Tab ── */
           <View>
             <Text style={styles.sectionLabel}>Post Content</Text>
             <View style={styles.textAreaWrapper}>
@@ -173,11 +221,7 @@ const CreatePostScreen: React.FC = () => {
                 placeholder="What's on your mind? Share news, tips, or promotions..."
                 style={styles.textArea}
               />
-              <Text
-                style={[
-                  styles.charCount,
-                  charCount > charLimitForPlatforms && styles.charCountOver,
-                ]}>
+              <Text style={[styles.charCount, charCount > charLimitForPlatforms && styles.charCountOver]}>
                 {charCount}/{charLimitForPlatforms}
               </Text>
             </View>
@@ -191,7 +235,6 @@ const CreatePostScreen: React.FC = () => {
             />
           </View>
         ) : (
-          /* ── AI Tab ── */
           <View>
             <Text style={styles.sectionLabel}>Describe Your Post</Text>
             <Input
@@ -210,11 +253,7 @@ const CreatePostScreen: React.FC = () => {
                   style={[styles.toneChip, selectedTone === tone.id && styles.toneChipActive]}
                   onPress={() => setSelectedTone(tone.id)}>
                   <Text style={styles.toneEmoji}>{tone.emoji}</Text>
-                  <Text
-                    style={[
-                      styles.toneLabel,
-                      selectedTone === tone.id && styles.toneLabelActive,
-                    ]}>
+                  <Text style={[styles.toneLabel, selectedTone === tone.id && styles.toneLabelActive]}>
                     {tone.label}
                   </Text>
                 </TouchableOpacity>
@@ -245,16 +284,54 @@ const CreatePostScreen: React.FC = () => {
                     {aiHashtags.map(h => `#${h}`).join(' ')}
                   </Text>
                 )}
-                <Text
-                  style={[
-                    styles.charCount,
-                    charCount > charLimitForPlatforms && styles.charCountOver,
-                  ]}>
+                <Text style={[styles.charCount, charCount > charLimitForPlatforms && styles.charCountOver]}>
                   {charCount}/{charLimitForPlatforms}
                 </Text>
               </View>
             ) : null}
           </View>
+        )}
+
+        {/* ── Media Section ── */}
+        <Text style={[styles.sectionLabel, { marginTop: Spacing.xl }]}>Photos</Text>
+        <View style={styles.mediaActions}>
+          <TouchableOpacity
+            style={[styles.mediaBtn, isUploading && styles.mediaBtnDisabled]}
+            onPress={handlePickImage}
+            disabled={isUploading || mediaUrls.length >= 4}>
+            {isUploading ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <Icon name="image-plus" size={20} color={Colors.primary} />
+            )}
+            <Text style={styles.mediaBtnText}>
+              {isUploading ? 'Uploading…' : 'Attach Photo'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.mediaBtn, styles.mediaBtnAI, mediaUrls.length >= 4 && styles.mediaBtnDisabled]}
+            onPress={() => setImageGenModalVisible(true)}
+            disabled={mediaUrls.length >= 4}>
+            <Icon name="creation" size={20} color={Colors.white} />
+            <Text style={[styles.mediaBtnText, { color: Colors.white }]}>Generate AI Photo</Text>
+          </TouchableOpacity>
+        </View>
+
+        {mediaUrls.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaStrip}>
+            {mediaUrls.map(url => (
+              <View key={url} style={styles.mediaThumbWrap}>
+                <Image source={{ uri: url }} style={styles.mediaThumb} resizeMode="cover" />
+                <TouchableOpacity style={styles.mediaRemoveBtn} onPress={() => handleRemoveImage(url)}>
+                  <Icon name="close-circle" size={20} color={Colors.error} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+        {mediaUrls.length >= 4 && (
+          <Text style={styles.mediaLimitText}>Maximum 4 images per post</Text>
         )}
 
         {/* Platform Selector */}
@@ -263,9 +340,7 @@ const CreatePostScreen: React.FC = () => {
           selectedPlatforms={selectedPlatforms}
           onToggle={platform =>
             setSelectedPlatforms(prev =>
-              prev.includes(platform)
-                ? prev.filter(p => p !== platform)
-                : [...prev, platform],
+              prev.includes(platform) ? prev.filter(p => p !== platform) : [...prev, platform],
             )
           }
         />
@@ -283,6 +358,7 @@ const CreatePostScreen: React.FC = () => {
                 businessId: business.id,
                 text: currentContent,
                 hashtags: draftHashtags,
+                mediaUrls,
                 platforms: selectedPlatforms,
                 mode: activeTab === 'ai' ? 'ai' : 'manual',
                 aiPrompt: activeTab === 'ai' ? aiPrompt : undefined,
@@ -308,6 +384,52 @@ const CreatePostScreen: React.FC = () => {
           />
         </View>
       </ScrollView>
+
+      {/* AI Image Generation Modal */}
+      <Modal
+        visible={imageGenModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setImageGenModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Icon name="creation" size={22} color={Colors.primary} />
+              <Text style={styles.modalTitle}>Generate AI Photo</Text>
+              <TouchableOpacity onPress={() => setImageGenModalVisible(false)}>
+                <Icon name="close" size={22} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              Describe the image you want DALL-E 3 to create for your post.
+            </Text>
+            <RNTextInput
+              style={styles.modalInput}
+              value={imageGenPrompt}
+              onChangeText={setImageGenPrompt}
+              placeholder="e.g. A vibrant summer sale banner with bright colors and modern typography..."
+              placeholderTextColor={Colors.gray400}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            <Text style={styles.modalHint}>Tip: Be specific about style, colors, mood, and composition.</Text>
+            <TouchableOpacity
+              style={[styles.modalGenerateBtn, (!imageGenPrompt.trim() || isGeneratingImage) && styles.mediaBtnDisabled]}
+              onPress={handleGenerateImage}
+              disabled={!imageGenPrompt.trim() || isGeneratingImage}>
+              {isGeneratingImage ? (
+                <View style={styles.modalGeneratingRow}>
+                  <ActivityIndicator size="small" color={Colors.white} />
+                  <Text style={styles.modalGenerateBtnText}>Generating image…</Text>
+                </View>
+              ) : (
+                <Text style={styles.modalGenerateBtnText}>Generate Image</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -315,20 +437,12 @@ const CreatePostScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   tabBar: {
-    flexDirection: 'row',
-    margin: Spacing.base,
-    backgroundColor: Colors.gray100,
-    borderRadius: Radius.lg,
-    padding: 4,
+    flexDirection: 'row', margin: Spacing.base,
+    backgroundColor: Colors.gray100, borderRadius: Radius.lg, padding: 4,
   },
   tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.md,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radius.md,
   },
   tabActive: { backgroundColor: Colors.primary },
   tabLabel: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, fontWeight: '600' },
@@ -336,33 +450,19 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { padding: Spacing.base, paddingBottom: Spacing['2xl'] },
   sectionLabel: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.base,
+    fontSize: Typography.fontSize.sm, fontWeight: '700', color: Colors.textPrimary,
+    marginBottom: Spacing.sm, marginTop: Spacing.base,
   },
   textAreaWrapper: { position: 'relative' },
   textArea: { minHeight: 120 },
-  charCount: {
-    textAlign: 'right',
-    fontSize: Typography.fontSize.xs,
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
+  charCount: { textAlign: 'right', fontSize: Typography.fontSize.xs, color: Colors.textSecondary, marginTop: 4 },
   charCountOver: { color: Colors.error },
   toneScroll: { marginBottom: Spacing.base },
   toneChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    marginRight: Spacing.sm,
-    backgroundColor: Colors.surface,
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
+    paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm,
+    borderRadius: Radius.full, borderWidth: 1.5, borderColor: Colors.border,
+    marginRight: Spacing.sm, backgroundColor: Colors.surface,
   },
   toneChipActive: { borderColor: Colors.primary, backgroundColor: Colors.surfaceVariant },
   toneEmoji: { fontSize: 16 },
@@ -370,42 +470,76 @@ const styles = StyleSheet.create({
   toneLabelActive: { color: Colors.primary, fontWeight: '600' },
   generateBtn: { marginBottom: Spacing.base },
   generatedBox: {
-    backgroundColor: Colors.surfaceVariant,
-    borderRadius: Radius.lg,
-    padding: Spacing.base,
-    borderWidth: 1,
-    borderColor: Colors.primary + '40',
+    backgroundColor: Colors.surfaceVariant, borderRadius: Radius.lg,
+    padding: Spacing.base, borderWidth: 1, borderColor: Colors.primary + '40',
   },
   generatedHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: Spacing.sm,
   },
   generatedTitle: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: '700',
-    color: Colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: Typography.fontSize.xs, fontWeight: '700', color: Colors.primary,
+    textTransform: 'uppercase', letterSpacing: 0.5,
   },
-  generatedContent: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.textPrimary,
-    lineHeight: 22,
+  generatedContent: { fontSize: Typography.fontSize.base, color: Colors.textPrimary, lineHeight: 22 },
+  generatedHashtags: { marginTop: Spacing.sm, fontSize: Typography.fontSize.sm, color: Colors.primary, fontWeight: '600' },
+
+  // Media
+  mediaActions: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
+  mediaBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radius.lg,
+    borderWidth: 1.5, borderColor: Colors.primary, backgroundColor: Colors.surface,
+    ...Shadows.sm,
   },
-  generatedHashtags: {
-    marginTop: Spacing.sm,
-    fontSize: Typography.fontSize.sm,
-    color: Colors.primary,
-    fontWeight: '600',
+  mediaBtnAI: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  mediaBtnDisabled: { opacity: 0.45 },
+  mediaBtnText: { fontSize: Typography.fontSize.sm, fontWeight: '600', color: Colors.primary },
+  mediaStrip: { marginBottom: Spacing.sm },
+  mediaThumbWrap: { position: 'relative', marginRight: Spacing.sm },
+  mediaThumb: {
+    width: 100, height: 100, borderRadius: Radius.lg,
+    backgroundColor: Colors.gray200,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.xl,
+  mediaRemoveBtn: {
+    position: 'absolute', top: -6, right: -6,
+    backgroundColor: Colors.white, borderRadius: Radius.full,
   },
+  mediaLimitText: { fontSize: Typography.fontSize.xs, color: Colors.textSecondary, marginBottom: Spacing.sm },
+
+  actions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xl },
   actionBtn: { flex: 1 },
+
+  // Modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: Colors.surface, borderTopLeftRadius: Radius['2xl'],
+    borderTopRightRadius: Radius['2xl'], padding: Spacing.xl,
+    paddingBottom: Spacing['2xl'],
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  modalTitle: { flex: 1, fontSize: Typography.fontSize.lg, fontWeight: '700', color: Colors.textPrimary },
+  modalSubtitle: { fontSize: Typography.fontSize.sm, color: Colors.textSecondary, marginBottom: Spacing.base },
+  modalInput: {
+    backgroundColor: Colors.surfaceVariant, borderRadius: Radius.lg,
+    padding: Spacing.base, fontSize: Typography.fontSize.base,
+    color: Colors.textPrimary, minHeight: 100,
+    borderWidth: 1, borderColor: Colors.border,
+    marginBottom: Spacing.sm,
+  },
+  modalHint: { fontSize: Typography.fontSize.xs, color: Colors.textSecondary, marginBottom: Spacing.base },
+  modalGenerateBtn: {
+    backgroundColor: Colors.primary, borderRadius: Radius.lg,
+    paddingVertical: Spacing.base, alignItems: 'center',
+  },
+  modalGeneratingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  modalGenerateBtnText: { fontSize: Typography.fontSize.base, fontWeight: '700', color: Colors.white },
 });
 
 export default CreatePostScreen;

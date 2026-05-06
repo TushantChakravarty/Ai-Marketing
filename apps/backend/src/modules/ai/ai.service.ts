@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import OpenAI from 'openai';
 import { env } from '../../config/env.config';
 import { Platform, Tone } from '../../config/constants';
 import {
@@ -25,9 +26,11 @@ const PLATFORM_GUIDELINES: Record<Platform, string> = {
 
 export class AIService {
   private client: Groq;
+  private openai: OpenAI | null;
 
   constructor() {
     this.client = new Groq({ apiKey: env.GROQ_API_KEY });
+    this.openai = env.OPENAI_API_KEY ? new OpenAI({ apiKey: env.OPENAI_API_KEY }) : null;
   }
 
   private async chat(systemPrompt: string, userMessage: string, maxTokens = 1024): Promise<string> {
@@ -138,6 +141,22 @@ Each item: { "date": "YYYY-MM-DD", "platform": "platform_name", "content": { "te
     } catch {
       return { sentiment: 'neutral', score: 0.5, explanation: 'Unable to analyze' };
     }
+  }
+
+  async generateImage(prompt: string, size: '1024x1024' | '1792x1024' | '1024x1792' = '1024x1024'): Promise<string> {
+    if (!this.openai) {
+      throw new Error('OpenAI API key is not configured. Add OPENAI_API_KEY to your environment.');
+    }
+    const response = await this.openai.images.generate({
+      model: 'dall-e-3',
+      prompt,
+      n: 1,
+      size,
+      quality: 'standard',
+    });
+    const url = response.data[0]?.url;
+    if (!url) throw new Error('No image URL returned from DALL-E');
+    return url;
   }
 
   async improvePost(content: string, feedback: string, platform?: Platform): Promise<AIGeneratedContent> {

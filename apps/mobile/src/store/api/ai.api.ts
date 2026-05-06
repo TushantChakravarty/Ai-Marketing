@@ -19,6 +19,15 @@ interface ContentCalendarParams {
   tone?: string;
 }
 
+interface GenerateImageParams {
+  prompt: string;
+  size?: '1024x1024' | '1792x1024' | '1024x1792';
+}
+
+interface GeneratedImage {
+  imageUrl: string;
+}
+
 interface GeneratedPost {
   text: string;
   hashtags: string[];
@@ -70,6 +79,14 @@ export const aiApi = baseApi.injectEndpoints({
         body: data,
       }),
     }),
+
+    generateImage: builder.mutation<ApiResponse<GeneratedImage>, GenerateImageParams>({
+      query: data => ({
+        url: '/ai/generate-image',
+        method: 'POST',
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -78,4 +95,5 @@ export const {
   useGenerateHashtagsMutation,
   useGenerateContentCalendarMutation,
   useImprovePostMutation,
+  useGenerateImageMutation,
 } = aiApi;
