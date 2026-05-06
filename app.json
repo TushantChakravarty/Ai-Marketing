@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "47a361d1-6962-4483-89de-d7e758b27259"
+      }
+    },
+    "android": {
+      "package": "com.swiftex.aimarketing"
+    }
+  }
+}

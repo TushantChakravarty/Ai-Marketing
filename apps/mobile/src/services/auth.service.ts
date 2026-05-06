@@ -19,6 +19,7 @@ export interface RefreshResponse {
 
 export const AuthService = {
   async register(data: RegisterData): Promise<ApiResponse<AuthResponse>> {
+    console.log('Registering user with data:', apiClient.defaults.baseURL, data);
     const response = await apiClient.post<ApiResponse<AuthResponse>>(
       '/auth/register',
       data,
