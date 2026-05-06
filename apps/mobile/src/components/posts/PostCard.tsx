@@ -35,9 +35,9 @@ const PostCard: React.FC<PostCardProps> = ({
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
       {/* Header row */}
       <View style={styles.header}>
-        <StatusBadge status={post.platformStatuses[0]?.status ?? 'draft'} />
+        <StatusBadge status={post.platforms[0]?.status ?? post.status ?? 'draft'} />
         <View style={styles.headerRight}>
-          {post.isAiGenerated && (
+          {post.mode === 'ai' && (
             <View style={styles.aiBadge}>
               <Icon name="robot" size={12} color={Colors.primary} />
               <Text style={styles.aiBadgeText}>AI</Text>
@@ -62,7 +62,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 leadingIcon="pencil"
               />
             )}
-            {onPublish && post.platformStatuses[0]?.status === 'draft' && (
+            {onPublish && (post.platforms[0]?.status ?? post.status) === 'draft' && (
               <Menu.Item
                 onPress={() => { setMenuVisible(false); onPublish(); }}
                 title="Publish Now"
@@ -83,13 +83,13 @@ const PostCard: React.FC<PostCardProps> = ({
 
       {/* Content */}
       <Text style={styles.content}>
-        {truncateText(post.content, 140)}
+        {truncateText(post.content.text, 140)}
       </Text>
 
       {/* Hashtags */}
-      {post.hashtags.length > 0 && (
+      {post.content.hashtags.length > 0 && (
         <Text style={styles.hashtags} numberOfLines={1}>
-          {post.hashtags.map(h => `#${h}`).join(' ')}
+          {post.content.hashtags.map(h => `#${h}`).join(' ')}
         </Text>
       )}
 
@@ -98,10 +98,10 @@ const PostCard: React.FC<PostCardProps> = ({
         {/* Platform icons */}
         <View style={styles.platforms}>
           {post.platforms.map(p => {
-            const cfg = PLATFORMS.find(pl => pl.id === p);
+            const cfg = PLATFORMS.find(pl => pl.id === p.platform);
             return cfg ? (
               <Icon
-                key={p}
+                key={p.platform}
                 name={cfg.icon}
                 size={16}
                 color={cfg.color}

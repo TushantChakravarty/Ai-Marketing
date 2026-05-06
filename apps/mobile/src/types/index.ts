@@ -84,19 +84,28 @@ export interface PlatformPostStatus {
   publishedAt?: string;
 }
 
+export interface PostPlatformEntry {
+  platform: Platform;
+  status: PostStatus;
+  platformPostId?: string;
+  publishedAt?: string;
+  error?: string;
+}
+
 export interface Post {
   id: string;
-  businessId: string;
-  content: string;
-  hashtags: string[];
-  media: PostMedia[];
-  platforms: Platform[];
-  platformStatuses: PlatformPostStatus[];
+  business: string;
+  content: {
+    text: string;
+    mediaUrls: string[];
+    hashtags: string[];
+  };
+  platforms: PostPlatformEntry[];
+  status: PostStatus;
+  mode: 'manual' | 'ai';
+  aiPrompt?: string;
   scheduledAt?: string;
   publishedAt?: string;
-  isAiGenerated: boolean;
-  prompt?: string;
-  tone?: Tone;
   createdAt: string;
   updatedAt: string;
 }
