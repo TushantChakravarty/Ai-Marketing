@@ -61,6 +61,16 @@ export const businessController: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // GET /businesses/me
+  fastify.get(
+    '/me',
+    { preHandler: [authenticate] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const businesses = await businessService.findByOwner(request.authUser!.id);
+      return reply.send(success(businesses, 'Businesses retrieved'));
+    },
+  );
+
   // GET /businesses/:id
   fastify.get<IdParams>(
     '/:id',
