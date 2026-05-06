@@ -5,5 +5,8 @@
   "scripts": {
     "backend": "cd apps/backend && npm run dev",
     "mobile": "cd apps/mobile && npx expo start"
+  },
+  "dependencies": {
+    "expo-web-browser": "^55.0.15"
   }
 }
