@@ -15,7 +15,8 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import { useAppSelector } from '../../store';
 import { useCreateCampaignMutation, useLaunchCampaignMutation } from '../../store/api/ads.api';
-import type { AdsStackParamList } from '../../types';
+import { useGetPlatformConfigsQuery } from '../../store/api/business.api';
+import type { AdsStackParamList, Platform } from '../../types';
 import {
   CampaignObjective,
   CampaignCTA,
@@ -28,10 +29,11 @@ import {
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { Colors, Spacing, Radius, Shadows, Typography } from '../../theme';
+import { PLATFORMS } from '../../config/constants';
 
 type Nav = StackNavigationProp<AdsStackParamList>;
 
-const STEPS = ['Objective', 'Budget', 'Audience', 'Creative', 'Review'];
+const STEPS = ['Objective', 'Platforms', 'Budget', 'Audience', 'Creative', 'Review'];
 
 const CreateCampaignScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
@@ -43,7 +45,10 @@ const CreateCampaignScreen: React.FC = () => {
   const [name, setName] = useState('');
   const [objective, setObjective] = useState<CampaignObjective>('TRAFFIC');
 
-  // Step 2 — Budget
+  // Step 2 — Platforms
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['facebook', 'instagram']);
+
+  // Step 3 — Budget
   const [budgetType, setBudgetType] = useState<'daily' | 'lifetime'>('daily');
   const [budgetAmount, setBudgetAmount] = useState('');
   const [startDate] = useState(dayjs().add(1, 'day').format('YYYY-MM-DD'));
@@ -60,17 +65,23 @@ const CreateCampaignScreen: React.FC = () => {
   const [linkUrl, setLinkUrl] = useState('');
   const [cta, setCta] = useState<CampaignCTA>('LEARN_MORE');
 
+  const { data: platformConfigsData } = useGetPlatformConfigsQuery(business?.id ?? '', {
+    skip: !business?.id,
+  });
+  const enabledPlatforms = (platformConfigsData?.data ?? []).filter(c => c.enabled);
+
   const [createCampaign, { isLoading: isCreating }] = useCreateCampaignMutation();
   const [launchCampaign, { isLoading: isLaunching }] = useLaunchCampaignMutation();
 
   const canNext = useCallback((): boolean => {
     if (step === 0) return name.trim().length > 0;
-    if (step === 1) return parseFloat(budgetAmount) > 0;
-    if (step === 2) return countries.trim().length > 0;
-    if (step === 3)
+    if (step === 1) return selectedPlatforms.length > 0;
+    if (step === 2) return parseFloat(budgetAmount) > 0;
+    if (step === 3) return countries.trim().length > 0;
+    if (step === 4)
       return headline.trim().length > 0 && bodyText.trim().length > 0 && linkUrl.trim().length > 0;
     return true;
-  }, [step, name, adAccountId, budgetAmount, countries, headline, bodyText, linkUrl]);
+  }, [step, name, selectedPlatforms, budgetAmount, countries, headline, bodyText, linkUrl]);
 
   const buildDto = () => {
     const countryList = countries
@@ -117,6 +128,7 @@ const CreateCampaignScreen: React.FC = () => {
       billingEvent: 'IMPRESSIONS' as const,
       creative,
       metaAdAccountId: '',
+      selectedPlatforms,
     };
   };
 
@@ -218,8 +230,56 @@ const CreateCampaignScreen: React.FC = () => {
           </View>
         )}
 
-        {/* ── Step 1: Budget ── */}
+        {/* ── Step 1: Platforms ── */}
         {step === 1 && (
+          <View>
+            <Text style={styles.sectionLabel}>Select platforms to run ads on</Text>
+            {enabledPlatforms.length === 0 ? (
+              <View style={platformStyles.emptyBox}>
+                <Icon name="information-outline" size={20} color={Colors.info} />
+                <Text style={platformStyles.emptyText}>
+                  No platforms are enabled yet. Go to Settings → Ad Platforms to enable them.
+                </Text>
+              </View>
+            ) : (
+              enabledPlatforms.map(cfg => {
+                const meta = PLATFORMS.find(p => p.id === cfg.platform);
+                if (!meta) return null;
+                const selected = selectedPlatforms.includes(cfg.platform);
+                return (
+                  <TouchableOpacity
+                    key={cfg.platform}
+                    style={[platformStyles.card, selected && platformStyles.cardActive]}
+                    onPress={() =>
+                      setSelectedPlatforms(prev =>
+                        selected ? prev.filter(p => p !== cfg.platform) : [...prev, cfg.platform],
+                      )
+                    }>
+                    <View style={[platformStyles.icon, { backgroundColor: meta.color + '20' }]}>
+                      <Icon name={meta.icon} size={22} color={meta.color} />
+                    </View>
+                    <View style={platformStyles.info}>
+                      <Text style={platformStyles.name}>{meta.name}</Text>
+                      {cfg.costPerAd > 0 && (
+                        <Text style={platformStyles.cost}>
+                          ${(cfg.costPerAd / 100).toFixed(2)} per ad
+                        </Text>
+                      )}
+                    </View>
+                    <Icon
+                      name={selected ? 'check-circle' : 'circle-outline'}
+                      size={22}
+                      color={selected ? Colors.primary : Colors.gray300}
+                    />
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </View>
+        )}
+
+        {/* ── Step 2: Budget ── */}
+        {step === 2 && (
           <View>
             <Text style={styles.sectionLabel}>Budget Type</Text>
             <View style={styles.toggleRow}>
@@ -254,8 +314,8 @@ const CreateCampaignScreen: React.FC = () => {
           </View>
         )}
 
-        {/* ── Step 2: Audience ── */}
-        {step === 2 && (
+        {/* ── Step 3: Audience ── */}
+        {step === 3 && (
           <View>
             <Input
               label="Countries (comma-separated ISO codes)"
@@ -287,8 +347,8 @@ const CreateCampaignScreen: React.FC = () => {
           </View>
         )}
 
-        {/* ── Step 3: Creative ── */}
-        {step === 3 && (
+        {/* ── Step 4: Creative ── */}
+        {step === 4 && (
           <View>
             <Input
               label="Headline"
@@ -330,12 +390,15 @@ const CreateCampaignScreen: React.FC = () => {
           </View>
         )}
 
-        {/* ── Step 4: Review ── */}
-        {step === 4 && (
+        {/* ── Step 5: Review ── */}
+        {step === 5 && (
           <View>
             <ReviewSection title="Campaign">
               <ReviewRow label="Name" value={name} />
-              <ReviewRow label="Platform" value="Meta (Facebook + Instagram)" />
+              <ReviewRow
+                label="Platforms"
+                value={selectedPlatforms.map(p => PLATFORMS.find(pl => pl.id === p)?.name ?? p).join(', ')}
+              />
               <ReviewRow label="Objective" value={OBJECTIVES.find(o => o.value === objective)?.label ?? objective} />
             </ReviewSection>
 
@@ -402,6 +465,24 @@ const CreateCampaignScreen: React.FC = () => {
     </KeyboardAvoidingView>
   );
 };
+
+const platformStyles = StyleSheet.create({
+  emptyBox: {
+    flexDirection: 'row', gap: Spacing.sm, backgroundColor: Colors.infoLight,
+    borderRadius: Radius.md, padding: Spacing.base, alignItems: 'flex-start',
+  },
+  emptyText: { flex: 1, fontSize: Typography.fontSize.sm, color: Colors.info, lineHeight: 18 },
+  card: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.base,
+    marginBottom: Spacing.sm, borderWidth: 1.5, borderColor: Colors.border,
+  },
+  cardActive: { borderColor: Colors.primary, backgroundColor: Colors.surfaceVariant },
+  icon: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  info: { flex: 1 },
+  name: { fontSize: Typography.fontSize.base, fontWeight: '600', color: Colors.textPrimary },
+  cost: { fontSize: Typography.fontSize.xs, color: Colors.textSecondary, marginTop: 2 },
+});
 
 const ReviewSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <View style={styles.reviewSection}>

@@ -32,6 +32,12 @@ export interface IBusiness extends Document {
     platformUserId?: string;
     platformUsername?: string;
   }>;
+  platformAdConfigs: Array<{
+    platform: Platform;
+    enabled: boolean;
+    costPerAd: number;   // in cents — what the app charges per ad run
+    currency: string;
+  }>;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -73,6 +79,20 @@ const businessSchema = new Schema<IBusiness>(
       default: TONE.PROFESSIONAL,
     },
     connectedPlatforms: [connectedPlatformSchema],
+    platformAdConfigs: {
+      type: [
+        new Schema(
+          {
+            platform: { type: String, enum: PLATFORMS, required: true },
+            enabled: { type: Boolean, default: false },
+            costPerAd: { type: Number, default: 0 },
+            currency: { type: String, default: 'USD' },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
     isActive: { type: Boolean, default: true },
   },
   {

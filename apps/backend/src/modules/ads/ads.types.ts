@@ -25,6 +25,7 @@ export interface CreateCampaignDto {
   billingEvent: BillingEvent;
   creative: AdCreative;
   metaAdAccountId: string;
+  selectedPlatforms?: string[];
 }
 
 export interface UpdateCampaignDto {

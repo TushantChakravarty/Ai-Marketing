@@ -33,6 +33,7 @@ class AdsService {
       billingEvent: dto.billingEvent,
       creative: dto.creative,
       metaAdAccountId: dto.metaAdAccountId || env.META_AD_ACCOUNT_ID,
+      selectedPlatforms: dto.selectedPlatforms ?? ['facebook', 'instagram'],
       status: 'draft',
     });
 

@@ -108,6 +108,8 @@ export interface ICampaign extends Document {
   optimizationGoal: OptimizationGoal;
   billingEvent: BillingEvent;
   creative: AdCreative;
+  // Which specific social networks this campaign runs on (subset of what the platform API supports)
+  selectedPlatforms: string[];  // e.g. ['facebook', 'instagram']
   // Meta-specific IDs
   metaCampaignId?: string;
   metaAdSetId?: string;
@@ -185,6 +187,7 @@ const campaignSchema = new Schema<ICampaign>(
       displayLink: String,
       metaAdCreativeId: String,
     },
+    selectedPlatforms: { type: [String], default: ['facebook', 'instagram'] },
     metaCampaignId: String,
     metaAdSetId: String,
     metaAdId: String,

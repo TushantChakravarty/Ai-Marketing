@@ -1,6 +1,7 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply, RouteGenericInterface } from 'fastify';
 import { z } from 'zod';
 import { businessService } from './business.service';
+import { IBusiness } from './business.model';
 import { platformService } from '../platforms/platform.service';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { success, created, noContent } from '../../shared/utils/response.util';
@@ -68,6 +69,41 @@ export const businessController: FastifyPluginAsync = async (fastify) => {
     async (request: FastifyRequest, reply: FastifyReply) => {
       const businesses = await businessService.findByOwner(request.authUser!.id);
       return reply.send(success(businesses, 'Businesses retrieved'));
+    },
+  );
+
+  // GET /businesses/:id/platform-configs
+  fastify.get<IdParams>(
+    '/:id/platform-configs',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const business = await businessService.findByIdAndOwner(request.params.id, request.authUser!.id);
+      if (!business) {
+        return reply.status(404).send({ success: false, message: 'Business not found', statusCode: 404 });
+      }
+      return reply.send(success(business.platformAdConfigs ?? [], 'Platform configs retrieved'));
+    },
+  );
+
+  // PATCH /businesses/:id/platform-configs
+  fastify.patch<IdParams>(
+    '/:id/platform-configs',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const configs = z.array(z.object({
+        platform: z.enum(PLATFORMS as [string, ...string[]]),
+        enabled: z.boolean(),
+        costPerAd: z.number().min(0),
+        currency: z.string().default('USD'),
+      })).parse(request.body);
+
+      const business = await businessService.findByIdAndOwner(request.params.id, request.authUser!.id);
+      if (!business) {
+        return reply.status(404).send({ success: false, message: 'Business not found', statusCode: 404 });
+      }
+      business.platformAdConfigs = configs as IBusiness['platformAdConfigs'];
+      await business.save();
+      return reply.send(success(business.platformAdConfigs, 'Platform configs updated'));
     },
   );
 

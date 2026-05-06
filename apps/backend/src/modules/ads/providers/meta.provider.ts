@@ -59,6 +59,14 @@ export class MetaAdsProvider extends BaseAdsProvider {
     // 2. Build targeting spec
     const targetingSpec = this.buildTargetingSpec(campaign.targeting);
 
+    // Restrict to selected Meta platforms (facebook / instagram)
+    const metaPlatforms = (campaign.selectedPlatforms ?? []).filter(
+      p => p === 'facebook' || p === 'instagram',
+    );
+    if (metaPlatforms.length > 0) {
+      targetingSpec.publisher_platforms = metaPlatforms;
+    }
+
     // 3. Create Ad Set
     const adSetPayload: Record<string, unknown> = {
       name: `${campaign.name} — Ad Set`,
@@ -73,11 +81,6 @@ export class MetaAdsProvider extends BaseAdsProvider {
         ? { daily_budget: campaign.budget.amount }
         : { lifetime_budget: campaign.budget.amount }),
     };
-
-    // Add placements if specified, otherwise use Advantage+ placements
-    if (campaign.placements.length > 0) {
-      adSetPayload.destination_type = 'WEBSITE';
-    }
 
     const { data: adSetData } = await this.client.post(
       `/act_${this.adAccountId}/adsets`,

@@ -53,6 +53,7 @@ const createCampaignSchema = z.object({
   billingEvent: z.enum(['IMPRESSIONS', 'LINK_CLICKS', 'POST_ENGAGEMENT']),
   creative: creativeSchema,
   metaAdAccountId: z.string().optional().default(''),
+  selectedPlatforms: z.array(z.string()).optional().default(['facebook', 'instagram']),
 });
 
 const updateCampaignSchema = z.object({

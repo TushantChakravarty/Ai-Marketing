@@ -37,6 +37,15 @@ export interface User {
   updatedAt: string;
 }
 
+// ─── Platform Ad Config ───────────────────────────────────────────────────────
+
+export interface PlatformAdConfig {
+  platform: Platform;
+  enabled: boolean;
+  costPerAd: number;  // in cents
+  currency: string;
+}
+
 // ─── Business ────────────────────────────────────────────────────────────────
 
 export interface Business {
@@ -50,6 +59,7 @@ export interface Business {
   marketingMode: MarketingMode;
   logoUrl?: string;
   website?: string;
+  platformAdConfigs?: PlatformAdConfig[];
   createdAt: string;
   updatedAt: string;
 }

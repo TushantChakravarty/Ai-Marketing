@@ -1,11 +1,5 @@
 import { baseApi } from './base.api';
-import { ApiResponse, Business, PlatformConnection, Platform } from '../../types';
-
-interface ConnectUrlParams {
-  platform: Platform;
-  businessId: string;
-  returnUrl: string;
-}
+import { ApiResponse, Business, PlatformAdConfig } from '../../types';
 
 interface CreateBusinessData {
   name: string;
@@ -19,16 +13,10 @@ interface CreateBusinessData {
 
 export const businessApi = baseApi.injectEndpoints({
   endpoints: builder => ({
-    createBusiness: builder.mutation<ApiResponse<Business>, CreateBusinessData>(
-      {
-        query: data => ({
-          url: '/businesses',
-          method: 'POST',
-          body: data,
-        }),
-        invalidatesTags: ['Business'],
-      },
-    ),
+    createBusiness: builder.mutation<ApiResponse<Business>, CreateBusinessData>({
+      query: data => ({ url: '/businesses', method: 'POST', body: data }),
+      invalidatesTags: ['Business'],
+    }),
 
     getMyBusinesses: builder.query<ApiResponse<Business[]>, void>({
       query: () => '/businesses/me',
@@ -44,36 +32,25 @@ export const businessApi = baseApi.injectEndpoints({
       ApiResponse<Business>,
       { id: string; data: Partial<CreateBusinessData> }
     >({
-      query: ({ id, data }) => ({
-        url: `/businesses/${id}`,
-        method: 'PATCH',
-        body: data,
-      }),
+      query: ({ id, data }) => ({ url: `/businesses/${id}`, method: 'PATCH', body: data }),
       invalidatesTags: (_result, _err, { id }) => [{ type: 'Business', id }],
     }),
 
-    getPlatformConnections: builder.query<
-      ApiResponse<PlatformConnection[]>,
-      string
-    >({
-      query: businessId => `/businesses/${businessId}/platforms`,
+    getPlatformConfigs: builder.query<ApiResponse<PlatformAdConfig[]>, string>({
+      query: businessId => `/businesses/${businessId}/platform-configs`,
       providesTags: ['Business'],
     }),
 
-    disconnectPlatform: builder.mutation<
-      ApiResponse<null>,
-      { businessId: string; platform: Platform }
+    updatePlatformConfigs: builder.mutation<
+      ApiResponse<PlatformAdConfig[]>,
+      { businessId: string; configs: PlatformAdConfig[] }
     >({
-      query: ({ businessId, platform }) => ({
-        url: `/businesses/${businessId}/platforms/${platform}`,
-        method: 'DELETE',
+      query: ({ businessId, configs }) => ({
+        url: `/businesses/${businessId}/platform-configs`,
+        method: 'PATCH',
+        body: configs,
       }),
       invalidatesTags: ['Business'],
-    }),
-
-    getConnectUrl: builder.query<ApiResponse<{ url: string }>, ConnectUrlParams>({
-      query: ({ platform, businessId, returnUrl }) =>
-        `/platforms/connect-url?platform=${platform}&businessId=${businessId}&returnUrl=${encodeURIComponent(returnUrl)}`,
     }),
   }),
 });
@@ -83,7 +60,6 @@ export const {
   useGetMyBusinessesQuery,
   useGetBusinessQuery,
   useUpdateBusinessMutation,
-  useGetPlatformConnectionsQuery,
-  useDisconnectPlatformMutation,
-  useLazyGetConnectUrlQuery,
+  useGetPlatformConfigsQuery,
+  useUpdatePlatformConfigsMutation,
 } = businessApi;
