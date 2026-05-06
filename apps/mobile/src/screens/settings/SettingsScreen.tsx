@@ -11,9 +11,15 @@ import { Text, Divider } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { useAppSelector, useAppDispatch } from '../../store';
 import { logout } from '../../store/slices/auth.slice';
-import { useGetPlatformConnectionsQuery, useDisconnectPlatformMutation } from '../../store/api/business.api';
+import {
+  useGetPlatformConnectionsQuery,
+  useDisconnectPlatformMutation,
+  useLazyGetConnectUrlQuery,
+} from '../../store/api/business.api';
 import Avatar from '../../components/common/Avatar';
 import { Colors, Spacing, Radius, Shadows, Typography } from '../../theme';
 import { PLATFORMS } from '../../config/constants';
@@ -28,11 +34,13 @@ const SettingsScreen: React.FC = () => {
   const user = useAppSelector(s => s.auth.user);
   const business = useAppSelector(s => s.business.currentBusiness);
 
-  const { data: platformsData } = useGetPlatformConnectionsQuery(
+  const { data: platformsData, refetch: refetchConnections } = useGetPlatformConnectionsQuery(
     business?.id ?? '',
     { skip: !business?.id },
   );
   const [disconnectPlatform, { isLoading: isDisconnecting }] = useDisconnectPlatformMutation();
+  const [getConnectUrl] = useLazyGetConnectUrlQuery();
+  const [connectingPlatform, setConnectingPlatform] = React.useState<PlatformType | null>(null);
 
   const connectedPlatforms = platformsData?.data ?? [];
 
@@ -76,11 +84,45 @@ const SettingsScreen: React.FC = () => {
   );
 
   const handleConnectPlatform = useCallback(
-    (platform: PlatformType) => {
-      // In a real app this would open the OAuth flow
-      Alert.alert('Connect Platform', `OAuth flow for ${platform} would open here.`);
+    async (platform: PlatformType) => {
+      if (!business?.id) return;
+
+      const platformConfig = PLATFORMS.find(p => p.id === platform);
+      setConnectingPlatform(platform);
+
+      try {
+        // returnUrl must match what openAuthSessionAsync listens for
+        const returnUrl = Linking.createURL('platforms/connected');
+
+        const urlResult = await getConnectUrl({
+          platform,
+          businessId: business.id,
+          returnUrl,
+        }).unwrap();
+
+        const result = await WebBrowser.openAuthSessionAsync(urlResult.data.url, returnUrl);
+
+        if (result.type === 'success') {
+          const parsed = Linking.parse(result.url);
+          if (parsed.queryParams?.success === 'true') {
+            await refetchConnections();
+            Alert.alert(
+              'Connected!',
+              `${platformConfig?.name ?? platform} has been connected successfully.`,
+            );
+          } else {
+            const errMsg = (parsed.queryParams?.error as string) ?? 'Connection failed.';
+            Alert.alert('Connection Failed', errMsg);
+          }
+        }
+        // result.type === 'cancel': user closed browser, do nothing
+      } catch {
+        Alert.alert('Error', `Failed to connect ${platformConfig?.name ?? platform}. Please try again.`);
+      } finally {
+        setConnectingPlatform(null);
+      }
     },
-    [],
+    [business?.id, getConnectUrl, refetchConnections],
   );
 
   return (
@@ -153,9 +195,12 @@ const SettingsScreen: React.FC = () => {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                style={styles.connectBtn}
-                onPress={() => handleConnectPlatform(platformConfig.id)}>
-                <Text style={styles.connectBtnText}>Connect</Text>
+                style={[styles.connectBtn, connectingPlatform === platformConfig.id && styles.connectBtnDisabled]}
+                onPress={() => handleConnectPlatform(platformConfig.id)}
+                disabled={connectingPlatform !== null}>
+                <Text style={styles.connectBtnText}>
+                  {connectingPlatform === platformConfig.id ? 'Connecting…' : 'Connect'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -320,6 +365,7 @@ const styles = StyleSheet.create({
   platformConnected: { fontSize: Typography.fontSize.xs, color: Colors.success, marginTop: 2 },
   platformDisconnected: { fontSize: Typography.fontSize.xs, color: Colors.textSecondary, marginTop: 2 },
   connectBtn: { paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, borderRadius: Radius.lg, backgroundColor: Colors.primary },
+  connectBtnDisabled: { opacity: 0.6 },
   connectBtnText: { fontSize: Typography.fontSize.sm, color: Colors.white, fontWeight: '600' },
   disconnectBtn: { paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1.5, borderColor: Colors.error },
   disconnectBtnText: { fontSize: Typography.fontSize.sm, color: Colors.error, fontWeight: '600' },

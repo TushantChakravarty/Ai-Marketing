@@ -1,6 +1,12 @@
 import { baseApi } from './base.api';
 import { ApiResponse, Business, PlatformConnection, Platform } from '../../types';
 
+interface ConnectUrlParams {
+  platform: Platform;
+  businessId: string;
+  returnUrl: string;
+}
+
 interface CreateBusinessData {
   name: string;
   description: string;
@@ -64,6 +70,11 @@ export const businessApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Business'],
     }),
+
+    getConnectUrl: builder.query<ApiResponse<{ url: string }>, ConnectUrlParams>({
+      query: ({ platform, businessId, returnUrl }) =>
+        `/platforms/connect-url?platform=${platform}&businessId=${businessId}&returnUrl=${encodeURIComponent(returnUrl)}`,
+    }),
   }),
 });
 
@@ -74,4 +85,5 @@ export const {
   useUpdateBusinessMutation,
   useGetPlatformConnectionsQuery,
   useDisconnectPlatformMutation,
+  useLazyGetConnectUrlQuery,
 } = businessApi;

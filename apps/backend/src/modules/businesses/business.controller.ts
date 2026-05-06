@@ -1,6 +1,7 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply, RouteGenericInterface } from 'fastify';
 import { z } from 'zod';
 import { businessService } from './business.service';
+import { platformService } from '../platforms/platform.service';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { success, created, noContent } from '../../shared/utils/response.util';
 import { PLATFORMS, MARKETING_MODE, TONE, INDUSTRY_LIST } from '../../config/constants';
@@ -26,15 +27,6 @@ const createBusinessSchema = z.object({
 
 const updateBusinessSchema = createBusinessSchema.partial().extend({
   isActive: z.boolean().optional(),
-});
-
-const connectPlatformSchema = z.object({
-  platform: z.enum(PLATFORMS),
-  accessToken: z.string().min(1),
-  refreshToken: z.string().optional(),
-  tokenExpiry: z.string().datetime().optional(),
-  platformUserId: z.string().min(1),
-  platformUsername: z.string().min(1),
 });
 
 interface IdParams extends RouteGenericInterface {
@@ -118,28 +110,17 @@ export const businessController: FastifyPluginAsync = async (fastify) => {
       if (!business) {
         return reply.status(404).send({ success: false, message: 'Business not found', statusCode: 404 });
       }
-      return reply.send(success(business.connectedPlatforms ?? [], 'Platforms retrieved'));
-    },
-  );
-
-  // POST /businesses/:id/platforms/connect
-  fastify.post<IdParams>(
-    '/:id/platforms/connect',
-    { preHandler: [authenticate] },
-    async (request, reply) => {
-      const dto = connectPlatformSchema.parse(request.body);
-      const business = await businessService.connectPlatform(
-        request.params.id,
-        request.authUser!.id,
-        {
-          ...dto,
-          tokenExpiry: dto.tokenExpiry ? new Date(dto.tokenExpiry) : undefined,
-        },
-      );
-      if (!business) {
-        return reply.status(404).send({ success: false, message: 'Business not found', statusCode: 404 });
-      }
-      return reply.send(success(business, 'Platform connected'));
+      const connections = await platformService.getConnections(request.params.id);
+      const safe = connections.map(c => ({
+        id: String(c._id ?? c.id),
+        platform: c.platform,
+        accountName: c.platformUsername,
+        accountId: c.platformUserId,
+        isActive: c.isActive,
+        expiresAt: c.tokenExpiry?.toISOString(),
+        connectedAt: c.connectedAt ? new Date(c.connectedAt).toISOString() : new Date().toISOString(),
+      }));
+      return reply.send(success(safe, 'Platforms retrieved'));
     },
   );
 
@@ -149,15 +130,12 @@ export const businessController: FastifyPluginAsync = async (fastify) => {
     { preHandler: [authenticate] },
     async (request, reply) => {
       const platform = z.enum(PLATFORMS).parse(request.params.platform);
-      const business = await businessService.disconnectPlatform(
-        request.params.id,
-        request.authUser!.id,
-        platform,
-      );
+      const business = await businessService.findByIdAndOwner(request.params.id, request.authUser!.id);
       if (!business) {
         return reply.status(404).send({ success: false, message: 'Business not found', statusCode: 404 });
       }
-      return reply.send(success(business, 'Platform disconnected'));
+      await platformService.disconnectPlatform(request.params.id, platform);
+      return reply.send(success(null, 'Platform disconnected'));
     },
   );
 };
