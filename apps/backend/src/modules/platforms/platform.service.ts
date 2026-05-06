@@ -47,7 +47,7 @@ export class PlatformService {
       params.set('code_challenge', 'challenge');
       params.set('code_challenge_method', 'plain');
     } else if (platform === 'facebook') {
-      params.set('client_id', env.FACEBOOK_APP_ID);
+      params.set('client_id', env.META_APP_ID || env.FACEBOOK_APP_ID);
     } else if (platform === 'instagram') {
       params.set('client_id', env.INSTAGRAM_APP_ID);
     } else if (platform === 'linkedin') {
@@ -103,11 +103,14 @@ export class PlatformService {
   ): Promise<IPlatformConnection> {
     const redirectUri = `${env.BACKEND_URL}/api/v1/platforms/oauth/facebook/callback`;
 
+    const fbAppId = env.META_APP_ID || env.FACEBOOK_APP_ID;
+    const fbAppSecret = env.META_APP_SECRET || env.FACEBOOK_APP_SECRET;
+
     // 1. Exchange code for short-lived user access token
     const tokenRes = await axios.get(`${GRAPH_API_BASE}/oauth/access_token`, {
       params: {
-        client_id: env.FACEBOOK_APP_ID,
-        client_secret: env.FACEBOOK_APP_SECRET,
+        client_id: fbAppId,
+        client_secret: fbAppSecret,
         redirect_uri: redirectUri,
         code,
       },
@@ -118,8 +121,8 @@ export class PlatformService {
     const longLivedRes = await axios.get(`${GRAPH_API_BASE}/oauth/access_token`, {
       params: {
         grant_type: 'fb_exchange_token',
-        client_id: env.FACEBOOK_APP_ID,
-        client_secret: env.FACEBOOK_APP_SECRET,
+        client_id: fbAppId,
+        client_secret: fbAppSecret,
         fb_exchange_token: shortLivedToken,
       },
     });
