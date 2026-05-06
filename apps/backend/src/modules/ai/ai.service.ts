@@ -143,20 +143,51 @@ Each item: { "date": "YYYY-MM-DD", "platform": "platform_name", "content": { "te
     }
   }
 
-  async generateImage(prompt: string, size: '1024x1024' | '1792x1024' | '1024x1792' = '1024x1024'): Promise<string> {
-    if (!this.openai) {
-      throw new Error('OpenAI API key is not configured. Add OPENAI_API_KEY to your environment.');
+  async generateImage(prompt: string): Promise<Buffer> {
+    if (env.HF_TOKEN) {
+      return this.generateImageHF(prompt);
     }
-    const response = await this.openai.images.generate({
+    if (this.openai) {
+      return this.generateImageOpenAI(prompt);
+    }
+    throw new Error(
+      'No image generation API configured. Add HF_TOKEN (free at huggingface.co) or OPENAI_API_KEY to your .env.',
+    );
+  }
+
+  private async generateImageHF(prompt: string): Promise<Buffer> {
+    const response = await fetch(
+      'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${env.HF_TOKEN}`,
+          'Content-Type': 'application/json',
+          Accept: 'image/jpeg',
+        },
+        body: JSON.stringify({ inputs: prompt }),
+      },
+    );
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Hugging Face image generation failed: ${text}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  }
+
+  private async generateImageOpenAI(prompt: string): Promise<Buffer> {
+    const resp = await this.openai!.images.generate({
       model: 'dall-e-3',
       prompt,
       n: 1,
-      size,
+      size: '1024x1024',
       quality: 'standard',
+      response_format: 'b64_json',
     });
-    const url = response.data[0]?.url;
-    if (!url) throw new Error('No image URL returned from DALL-E');
-    return url;
+    const b64 = resp.data[0]?.b64_json;
+    if (!b64) throw new Error('No image data returned from DALL-E');
+    return Buffer.from(b64, 'base64');
   }
 
   async improvePost(content: string, feedback: string, platform?: Platform): Promise<AIGeneratedContent> {

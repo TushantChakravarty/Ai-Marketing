@@ -27,6 +27,7 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().default(''),
   ANTHROPIC_API_KEY: z.string().default(''),
   GROQ_API_KEY: z.string().default(''),
+  HF_TOKEN: z.string().default(''),  // Hugging Face token — free at huggingface.co
 
   SENDGRID_API_KEY: z.string().default(''),
   EMAIL_FROM: z.string().default('noreply@aimarketing.app'),

@@ -21,7 +21,6 @@ interface ContentCalendarParams {
 
 interface GenerateImageParams {
   prompt: string;
-  size?: '1024x1024' | '1792x1024' | '1024x1792';
 }
 
 interface GeneratedImage {

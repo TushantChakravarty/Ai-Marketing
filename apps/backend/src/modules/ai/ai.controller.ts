@@ -1,3 +1,5 @@
+import path from 'path';
+import fs from 'fs';
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { aiService } from './ai.service';
@@ -5,6 +7,10 @@ import { businessService } from '../businesses/business.service';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { success } from '../../shared/utils/response.util';
 import { PLATFORMS, TONE, INDUSTRY_LIST } from '../../config/constants';
+import { env } from '../../config/env.config';
+
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const generatePostSchema = z.object({
   businessId: z.string().min(1),
@@ -27,7 +33,6 @@ const generateImagePromptSchema = z.object({
 
 const generateImageSchema = z.object({
   prompt: z.string().min(1).max(1000),
-  size: z.enum(['1024x1024', '1792x1024', '1024x1792']).optional(),
 });
 
 const contentCalendarSchema = z.object({
@@ -99,7 +104,12 @@ export const aiController: FastifyPluginAsync = async (fastify) => {
     { preHandler: [authenticate] },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const dto = generateImageSchema.parse(request.body);
-      const imageUrl = await aiService.generateImage(dto.prompt, dto.size);
+      const buffer = await aiService.generateImage(dto.prompt);
+
+      const filename = `ai-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+      fs.writeFileSync(path.join(UPLOADS_DIR, filename), buffer);
+      const imageUrl = `${env.BACKEND_URL}/uploads/${filename}`;
+
       return reply.send(success({ imageUrl }, 'Image generated successfully'));
     },
   );
