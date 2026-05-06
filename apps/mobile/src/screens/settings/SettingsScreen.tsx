@@ -11,7 +11,6 @@ import { Text, Divider } from 'react-native-paper';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
-import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { useAppSelector, useAppDispatch } from '../../store';
 import { logout } from '../../store/slices/auth.slice';
@@ -91,7 +90,6 @@ const SettingsScreen: React.FC = () => {
       setConnectingPlatform(platform);
 
       try {
-        // returnUrl must match what openAuthSessionAsync listens for
         const returnUrl = Linking.createURL('platforms/connected');
 
         const urlResult = await getConnectUrl({
@@ -100,26 +98,26 @@ const SettingsScreen: React.FC = () => {
           returnUrl,
         }).unwrap();
 
-        const result = await WebBrowser.openAuthSessionAsync(urlResult.data.url, returnUrl);
+        // Listen for the deep-link redirect before opening the browser
+        const subscription = Linking.addEventListener('url', ({ url }) => {
+          subscription.remove();
+          setConnectingPlatform(null);
 
-        if (result.type === 'success') {
-          const parsed = Linking.parse(result.url);
+          const parsed = Linking.parse(url);
           if (parsed.queryParams?.success === 'true') {
-            await refetchConnections();
-            Alert.alert(
-              'Connected!',
-              `${platformConfig?.name ?? platform} has been connected successfully.`,
-            );
+            refetchConnections();
+            Alert.alert('Connected!', `${platformConfig?.name ?? platform} connected successfully.`);
           } else {
             const errMsg = (parsed.queryParams?.error as string) ?? 'Connection failed.';
             Alert.alert('Connection Failed', errMsg);
           }
-        }
-        // result.type === 'cancel': user closed browser, do nothing
+        });
+
+        // Open OAuth URL in the device browser
+        await Linking.openURL(urlResult.data.url);
       } catch {
-        Alert.alert('Error', `Failed to connect ${platformConfig?.name ?? platform}. Please try again.`);
-      } finally {
         setConnectingPlatform(null);
+        Alert.alert('Error', `Failed to connect ${platformConfig?.name ?? platform}. Please try again.`);
       }
     },
     [business?.id, getConnectUrl, refetchConnections],
