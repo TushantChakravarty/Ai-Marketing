@@ -196,6 +196,66 @@ Each item: { "date": "YYYY-MM-DD", "platform": "platform_name", "content": { "te
     return Buffer.from(b64, 'base64');
   }
 
+  async generateCampaign(params: {
+    businessName: string;
+    industry: string;
+    targetAudience?: string;
+    campaignType: 'product_launch' | 'sale' | 'awareness' | 'event';
+    offer: string;
+    location: string;
+    budgetRange: 'low' | 'medium' | 'high';
+    durationDays: number;
+  }): Promise<Record<string, unknown>> {
+    const budgetMap = { low: '$5–$20/day', medium: '$20–$100/day', high: '$100–$500/day' };
+
+    const raw = await this.chat(
+      `You are a Meta Ads campaign strategist. Respond ONLY with valid JSON, no markdown, no explanation.`,
+      `Create a complete Meta Ads campaign for:
+Business: ${params.businessName} (${params.industry})
+Target Audience: ${params.targetAudience ?? 'General audience'}
+Campaign Type: ${params.campaignType}
+Offer / Goal: ${params.offer}
+Location: ${params.location}
+Budget Range: ${budgetMap[params.budgetRange]}
+Duration: ${params.durationDays} days
+
+Respond with this exact JSON shape:
+{
+  "name": "Campaign name",
+  "objective": "REACH|TRAFFIC|CONVERSIONS|BRAND_AWARENESS|LEAD_GENERATION",
+  "targeting": {
+    "ageMin": 18,
+    "ageMax": 65,
+    "genders": ["All"|"Male"|"Female"],
+    "interests": ["interest1", "interest2", "interest3"],
+    "locations": ["city or country"]
+  },
+  "budget": {
+    "dailyAmount": 20,
+    "totalAmount": 140,
+    "currency": "USD",
+    "durationDays": ${params.durationDays}
+  },
+  "adCreative": {
+    "headline": "Short punchy headline (max 40 chars)",
+    "primaryText": "Main ad body text (1-3 sentences, engaging)",
+    "description": "Supporting description (1 sentence)",
+    "callToAction": "LEARN_MORE|SHOP_NOW|SIGN_UP|CONTACT_US|BOOK_NOW|GET_OFFER",
+    "imagePrompt": "Detailed AI image generation prompt for the ad visual"
+  },
+  "rationale": "1-2 sentences explaining why these settings work for this campaign"
+}`,
+      2048,
+    );
+
+    try {
+      const match = raw.match(/\{[\s\S]*\}/);
+      return match ? JSON.parse(match[0]) : {};
+    } catch {
+      return {};
+    }
+  }
+
   async improvePost(content: string, feedback: string, platform?: Platform): Promise<AIGeneratedContent> {
     const platformContext = platform
       ? `Platform: ${platform}. ${PLATFORM_GUIDELINES[platform]}`

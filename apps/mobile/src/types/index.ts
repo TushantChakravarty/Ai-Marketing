@@ -271,9 +271,46 @@ export type PostsStackParamList = {
   PostDetail: { postId: string };
 };
 
+export type CampaignType = 'product_launch' | 'sale' | 'awareness' | 'event';
+export type BudgetRange = 'low' | 'medium' | 'high';
+
+export interface AICampaignTargeting {
+  ageMin: number;
+  ageMax: number;
+  genders: string[];
+  interests: string[];
+  locations: string[];
+}
+
+export interface AICampaignBudget {
+  dailyAmount: number;
+  totalAmount: number;
+  currency: string;
+  durationDays: number;
+}
+
+export interface AICampaignCreative {
+  headline: string;
+  primaryText: string;
+  description: string;
+  callToAction: string;
+  imagePrompt: string;
+}
+
+export interface AICampaign {
+  name: string;
+  objective: string;
+  targeting: AICampaignTargeting;
+  budget: AICampaignBudget;
+  adCreative: AICampaignCreative;
+  rationale: string;
+}
+
 export type AdsStackParamList = {
   CampaignsList: undefined;
   CreateCampaign: undefined;
+  CreateAICampaign: undefined;
+  CampaignPreview: { campaign: AICampaign; businessId: string };
   CampaignDetail: { campaignId: string };
 };
 

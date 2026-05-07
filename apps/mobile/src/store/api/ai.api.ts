@@ -1,5 +1,5 @@
 import { baseApi } from './base.api';
-import { ApiResponse, Platform } from '../../types';
+import { ApiResponse, Platform, AICampaign, CampaignType, BudgetRange } from '../../types';
 
 interface GeneratePostParams {
   businessId: string;
@@ -21,6 +21,15 @@ interface ContentCalendarParams {
 
 interface GenerateImageParams {
   prompt: string;
+}
+
+interface GenerateCampaignParams {
+  businessId: string;
+  campaignType: CampaignType;
+  offer: string;
+  location: string;
+  budgetRange: BudgetRange;
+  durationDays: number;
 }
 
 interface GeneratedImage {
@@ -86,6 +95,14 @@ export const aiApi = baseApi.injectEndpoints({
         body: data,
       }),
     }),
+
+    generateCampaign: builder.mutation<ApiResponse<{ campaign: AICampaign }>, GenerateCampaignParams>({
+      query: data => ({
+        url: '/ai/generate-campaign',
+        method: 'POST',
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -95,4 +112,5 @@ export const {
   useGenerateContentCalendarMutation,
   useImprovePostMutation,
   useGenerateImageMutation,
+  useGenerateCampaignMutation,
 } = aiApi;

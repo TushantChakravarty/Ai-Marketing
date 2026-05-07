@@ -216,6 +216,12 @@ const CampaignsListScreen: React.FC = () => {
           <Icon name="plus" size={14} color={Colors.white} />
           <Text style={styles.newCampaignText}>New</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.newCampaignBtn, styles.aiCampaignBtn]}
+          onPress={() => navigation.navigate('CreateAICampaign')}>
+          <Icon name="creation" size={14} color={Colors.white} />
+          <Text style={styles.newCampaignText}>AI</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Filter chips — ScrollView with explicit height, not FlatList */}
@@ -249,8 +255,8 @@ const CampaignsListScreen: React.FC = () => {
               ? 'Launch your first ad campaign to reach more customers.'
               : `You don't have any ${activeFilter} campaigns right now.`
           }
-          actionLabel={activeFilter === 'all' ? 'Create Campaign' : undefined}
-          onAction={activeFilter === 'all' ? () => navigation.navigate('CreateCampaign') : undefined}
+          actionLabel={activeFilter === 'all' ? 'Build with AI' : undefined}
+          onAction={activeFilter === 'all' ? () => navigation.navigate('CreateAICampaign') : undefined}
         />
       ) : (
         <FlatList
@@ -266,10 +272,10 @@ const CampaignsListScreen: React.FC = () => {
 
       {filtered.length > 0 && (
         <FAB
-          icon="plus"
+          icon="creation"
           style={styles.fab}
           color={Colors.white}
-          onPress={() => navigation.navigate('CreateCampaign')}
+          onPress={() => navigation.navigate('CreateAICampaign')}
         />
       )}
     </View>
@@ -326,6 +332,7 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.xs,
   },
   newCampaignText: { color: Colors.white, fontSize: Typography.fontSize.xs, fontWeight: '700' },
+  aiCampaignBtn: { backgroundColor: Colors.secondary, marginLeft: Spacing.xs },
 
   // Filters
   filterContainer: { height: 52 },

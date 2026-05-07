@@ -35,6 +35,15 @@ const generateImageSchema = z.object({
   prompt: z.string().min(1).max(1000),
 });
 
+const generateCampaignSchema = z.object({
+  businessId: z.string().min(1),
+  campaignType: z.enum(['product_launch', 'sale', 'awareness', 'event']),
+  offer: z.string().min(1).max(500),
+  location: z.string().min(1).max(200),
+  budgetRange: z.enum(['low', 'medium', 'high']),
+  durationDays: z.number().int().min(1).max(90),
+});
+
 const contentCalendarSchema = z.object({
   businessId: z.string().min(1),
   days: z.number().int().min(1).max(30),
@@ -118,6 +127,32 @@ export const aiController: FastifyPluginAsync = async (fastify) => {
       }
 
       return reply.send(success({ imageUrl }, 'Image generated successfully'));
+    },
+  );
+
+  // POST /ai/generate-campaign
+  fastify.post(
+    '/generate-campaign',
+    { preHandler: [authenticate] },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const dto = generateCampaignSchema.parse(request.body);
+      const business = await businessService.findByIdAndOwner(dto.businessId, request.authUser!.id);
+      if (!business) {
+        return reply.status(404).send({ success: false, message: 'Business not found', statusCode: 404 });
+      }
+
+      const campaign = await aiService.generateCampaign({
+        businessName: business.name,
+        industry: business.industry,
+        targetAudience: business.targetAudience,
+        campaignType: dto.campaignType,
+        offer: dto.offer,
+        location: dto.location,
+        budgetRange: dto.budgetRange,
+        durationDays: dto.durationDays,
+      });
+
+      return reply.send(success({ campaign }, 'Campaign generated successfully'));
     },
   );
 
