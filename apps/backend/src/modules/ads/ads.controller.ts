@@ -69,9 +69,7 @@ export const adsController: FastifyPluginAsync = async (fastify) => {
   // POST /ads — create campaign (draft)
   fastify.post('/', { preHandler: authenticate }, async (req, reply) => {
     const dto = createCampaignSchema.parse(req.body);
-    const user = (req as any).user;
-
-    const campaign = await adsService.createCampaign(user.id, {
+    const campaign = await adsService.createCampaign(req.authUser!.id, {
       ...dto,
       budget: {
         ...dto.budget,

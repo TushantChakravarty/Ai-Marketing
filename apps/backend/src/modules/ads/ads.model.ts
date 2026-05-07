@@ -62,7 +62,7 @@ export interface AdCreative {
     | 'DOWNLOAD';
   imageUrls?: string[];
   videoUrl?: string;
-  linkUrl: string;
+  linkUrl?: string;
   displayLink?: string;
   metaAdCreativeId?: string;      // returned by Meta after creative is created
 }
@@ -183,7 +183,7 @@ const campaignSchema = new Schema<ICampaign>(
       callToAction: { type: String, required: true },
       imageUrls: [String],
       videoUrl: String,
-      linkUrl: { type: String, required: true },
+      linkUrl: { type: String, required: false, default: '' },
       displayLink: String,
       metaAdCreativeId: String,
     },
