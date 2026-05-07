@@ -35,7 +35,7 @@ const creativeSchema = z.object({
   ]),
   imageUrls: z.array(z.string().url()).optional(),
   videoUrl: z.string().url().optional(),
-  linkUrl: z.string().url().optional().default(''),
+  linkUrl: z.string().url().optional(),
   displayLink: z.string().optional(),
 });
 

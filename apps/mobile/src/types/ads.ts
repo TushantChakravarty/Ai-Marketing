@@ -57,7 +57,7 @@ export interface AdCreative {
   callToAction: CampaignCTA;
   imageUrls?: string[];
   videoUrl?: string;
-  linkUrl: string;
+  linkUrl?: string;
   displayLink?: string;
   metaAdCreativeId?: string;
 }
