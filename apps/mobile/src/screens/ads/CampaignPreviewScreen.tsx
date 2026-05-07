@@ -16,6 +16,8 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import type { AdsStackParamList } from '../../types';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../theme';
 import { useGenerateImageMutation } from '../../store/api/ai.api';
+import { useCreateCampaignMutation } from '../../store/api/ads.api';
+import type { CreateCampaignDto, CampaignObjective, CampaignCTA } from '../../types/ads';
 
 type Route = RouteProp<AdsStackParamList, 'CampaignPreview'>;
 type Nav = StackNavigationProp<AdsStackParamList, 'CampaignPreview'>;
@@ -73,6 +75,72 @@ export default function CampaignPreviewScreen() {
 
   const [adImageUrl, setAdImageUrl] = useState<string | null>(null);
   const [generateImage, { isLoading: generatingImage }] = useGenerateImageMutation();
+  const [createCampaign, { isLoading: isSaving }] = useCreateCampaignMutation();
+
+  const OBJECTIVE_MAP: Record<string, CampaignObjective> = {
+    REACH: 'AWARENESS',
+    BRAND_AWARENESS: 'AWARENESS',
+    TRAFFIC: 'TRAFFIC',
+    CONVERSIONS: 'SALES',
+    LEAD_GENERATION: 'LEADS',
+    ENGAGEMENT: 'ENGAGEMENT',
+  };
+
+  const CTA_MAP: Record<string, CampaignCTA> = {
+    LEARN_MORE: 'LEARN_MORE',
+    SHOP_NOW: 'SHOP_NOW',
+    SIGN_UP: 'SIGN_UP',
+    CONTACT_US: 'CONTACT_US',
+    BOOK_NOW: 'BOOK_NOW',
+    GET_OFFER: 'GET_QUOTE',
+  };
+
+  const handleSaveDraft = async () => {
+    const today = new Date();
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + campaign.budget.durationDays);
+
+    const dto: CreateCampaignDto = {
+      businessId: params.businessId,
+      platform: 'meta',
+      name: campaign.name,
+      objective: OBJECTIVE_MAP[campaign.objective] ?? 'AWARENESS',
+      budget: {
+        type: 'daily',
+        amount: campaign.budget.dailyAmount * 100, // store in cents
+        currency: campaign.budget.currency,
+        startDate: today.toISOString(),
+        endDate: endDate.toISOString(),
+      },
+      targeting: {
+        ageMin: campaign.targeting.ageMin,
+        ageMax: campaign.targeting.ageMax,
+        genders: campaign.targeting.genders.map(g => g.toLowerCase()) as ('male' | 'female' | 'all')[],
+        cities: campaign.targeting.locations,
+        interests: campaign.targeting.interests.map(name => ({ id: name, name })),
+      },
+      placements: ['facebook_feed', 'instagram_feed'],
+      optimizationGoal: 'REACH',
+      billingEvent: 'IMPRESSIONS',
+      creative: {
+        headline: campaign.adCreative.headline,
+        bodyText: campaign.adCreative.primaryText,
+        callToAction: CTA_MAP[campaign.adCreative.callToAction] ?? 'LEARN_MORE',
+        imageUrls: adImageUrl ? [adImageUrl] : [],
+      },
+      metaAdAccountId: '',
+      selectedPlatforms: ['meta'],
+    };
+
+    try {
+      await createCampaign(dto).unwrap();
+      Alert.alert('Saved!', 'Campaign saved as draft. You can launch it from the Campaigns list.', [
+        { text: 'OK', onPress: () => navigation.navigate('CampaignsList') },
+      ]);
+    } catch {
+      Alert.alert('Save failed', 'Could not save the campaign. Please try again.');
+    }
+  };
 
   const handleGenerateImage = async () => {
     try {
@@ -199,15 +267,25 @@ export default function CampaignPreviewScreen() {
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}>
-          <MaterialCommunityIcons name="pencil" size={18} color={Colors.primary} />
-          <Text style={styles.backBtnText}>Edit Details</Text>
+          <MaterialCommunityIcons name="pencil" size={16} color={Colors.primary} />
+          <Text style={styles.backBtnText}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.draftBtn, isSaving && { opacity: 0.6 }]}
+          onPress={handleSaveDraft}
+          disabled={isSaving}
+          activeOpacity={0.8}>
+          {isSaving
+            ? <ActivityIndicator size="small" color={Colors.textSecondary} />
+            : <MaterialCommunityIcons name="content-save-outline" size={16} color={Colors.textSecondary} />}
+          <Text style={styles.draftBtnText}>{isSaving ? 'Saving…' : 'Save Draft'}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.launchBtn}
           onPress={handleLaunch}
           activeOpacity={0.85}>
-          <MaterialCommunityIcons name="rocket-launch" size={18} color="#fff" />
-          <Text style={styles.launchBtnText}>Launch Campaign</Text>
+          <MaterialCommunityIcons name="rocket-launch" size={16} color="#fff" />
+          <Text style={styles.launchBtnText}>Launch</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -333,24 +411,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
+    gap: 4,
     backgroundColor: Colors.surface,
     borderRadius: Radius.xl,
     paddingVertical: Spacing.md,
     borderWidth: 1.5,
     borderColor: Colors.primary,
   },
-  backBtnText: { fontSize: Typography.fontSize.base, fontWeight: '700', color: Colors.primary },
-  launchBtn: {
-    flex: 2,
+  backBtnText: { fontSize: Typography.fontSize.sm, fontWeight: '700', color: Colors.primary },
+  draftBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
+    gap: 4,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    paddingVertical: Spacing.md,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  draftBtnText: { fontSize: Typography.fontSize.sm, fontWeight: '700', color: Colors.textSecondary },
+  launchBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
     backgroundColor: Colors.primary,
     borderRadius: Radius.xl,
     paddingVertical: Spacing.md,
     ...Shadows.md,
   },
-  launchBtnText: { fontSize: Typography.fontSize.base, fontWeight: '700', color: '#fff' },
+  launchBtnText: { fontSize: Typography.fontSize.sm, fontWeight: '700', color: '#fff' },
 });
