@@ -7,6 +7,9 @@
     },
     "android": {
       "package": "com.swiftex.aimarketing"
+    },
+    "ios": {
+      "bundleIdentifier": "com.swiftex.aimarketing"
     }
   }
 }
