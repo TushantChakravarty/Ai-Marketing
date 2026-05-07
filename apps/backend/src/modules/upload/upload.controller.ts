@@ -3,7 +3,7 @@ import fs from 'fs';
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { success } from '../../shared/utils/response.util';
-import { env } from '../../config/env.config';
+import { getServerOrigin } from '../../shared/utils/url.util';
 
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -38,7 +38,7 @@ export const uploadController: FastifyPluginAsync = async (fastify) => {
       const buffer = Buffer.concat(chunks);
       fs.writeFileSync(filePath, buffer);
 
-      const fileUrl = `${env.BACKEND_URL}/uploads/${filename}`;
+      const fileUrl = `${getServerOrigin(request)}/uploads/${filename}`;
       return reply.send(success({ url: fileUrl }, 'Image uploaded'));
     },
   );

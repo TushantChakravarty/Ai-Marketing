@@ -45,3 +45,4 @@ coverage/
 # Misc
 .cache/
 tmp/
+CLAUDE.md
