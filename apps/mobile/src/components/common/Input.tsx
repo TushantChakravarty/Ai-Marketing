@@ -80,6 +80,7 @@ const Input: React.FC<InputProps> = ({
         maxLength={maxLength}
         mode="outlined"
         error={!!error}
+        textColor={Colors.textPrimary}
         outlineColor={error ? Colors.error : Colors.border}
         activeOutlineColor={error ? Colors.error : Colors.primary}
         style={[styles.input, multiline && styles.multiline]}
